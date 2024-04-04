@@ -1,12 +1,36 @@
-name: test
+name: Test Solidity Contracts
 
-on: workflow_dispatch
+on:
+  pull_request:
+  push:
+    branches:
+      - main
 
 env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  check:
+  lint:
+    strategy:
+      fail-fast: true
+
+    name: Solhint linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+      
+      - name: Install solhint
+        run: npm install -g solhint@^4.5
+
+      - name: Run solhint
+        run: solhint 'src/**/*.sol' 'test/**/*.sol' 'script/**/*.sol'
+
+  build_and_test:
     strategy:
       fail-fast: true
 
@@ -20,15 +44,28 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: nightly-d94e3c631e2da7756af46c70f8f58b75563b7013
+
+      - name: Run Forge fmt check
+        run: |
+          forge --version
+          forge fmt --check
+        id: fmt_solidity
 
       - name: Run Forge build
         run: |
           forge --version
-          forge build --sizes
-        id: build
+          forge build --build-info --sizes
+        id: build_solidity
 
       - name: Run Forge tests
         run: |
           forge test -vvv
-        id: test
+        id: test_solidity
+
+      - name: Analyze with Slither
+        uses: crytic/slither-action@v0.3.2
+        with:
+          ignore-compile: true
+          slither-version: 0.10.1
+          slither-args: --exclude solc-version --exclude-dependencies

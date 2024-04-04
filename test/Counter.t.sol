@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.25;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Counter} from "../src/Counter.sol";
 // import {MarketTypes} from "@zondax/filecoin-solidity/contracts/v0.8/types/MarketTypes.sol";
 
@@ -13,12 +13,12 @@ contract CounterTest is Test {
         counter.setNumber(0);
     }
 
-    function test_Increment() public {
+    function testIncrement() public {
         counter.increment();
         assertEq(counter.number(), 1);
     }
 
-    function testFuzz_SetNumber(uint256 x) public {
+    function testFuzzSetNumber(uint256 x) public {
         counter.setNumber(x);
         assertEq(counter.number(), x);
     }
