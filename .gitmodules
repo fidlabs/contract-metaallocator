@@ -4,3 +4,6 @@
 [submodule "blockchain/lib/filecoin-solidity"]
 	path = lib/filecoin-solidity
 	url = https://github.com/Zondax/filecoin-solidity
+[submodule "lib/openzeppelin-foundry-upgrades"]
+	path = lib/openzeppelin-foundry-upgrades
+	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
