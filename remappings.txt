@@ -1,0 +1,9 @@
+forge-std/=lib/forge-std/src/
+@ensdomains/buffer/=lib/filecoin-solidity/lib/buffer/
+@zondax/solidity-bignumber/=lib/filecoin-solidity/lib/solidity-BigNumber/
+buffer/=lib/filecoin-solidity/lib/buffer/contracts/
+ds-test/=lib/filecoin-solidity/lib/solidity-bignumber/lib/forge-std/lib/ds-test/src/
+filecoin-solidity/=lib/filecoin-solidity/
+solidity-bignumber/=lib/filecoin-solidity/lib/solidity-bignumber/src/
+solidity-cborutils/=lib/filecoin-solidity/lib/solidity-cborutils/contracts/
+solidity-cborutils/contracts/=lib/filecoin-solidity/lib/solidity-cborutils/contracts/
