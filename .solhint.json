@@ -6,7 +6,12 @@
     "func-param-name-mixedcase": "error",
     "modifier-name-mixedcase": "error",
     "named-parameters-mapping": "error",
-    "private-vars-leading-underscore": ["error",{"strict":true}],
+    "private-vars-leading-underscore": [
+      "error",
+      {
+        "strict": true
+      }
+    ],
     "ordering": "off",
     "immutable-vars-naming": "error",
     "no-global-import": "error",
@@ -18,6 +23,11 @@
     "gas-struct-packing": "warn",
     "gas-calldata-parameters": "warn",
     "func-name-mixedcase": "error",
-    "func-visibility": ["warn",{"ignoreConstructors":true}]
+    "func-visibility": [
+      "warn",
+      {
+        "ignoreConstructors": true
+      }
+    ]
   }
 }
