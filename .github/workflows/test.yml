@@ -44,7 +44,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-d94e3c631e2da7756af46c70f8f58b75563b7013
+          version: nightly-de33b6af53005037b463318d2628b5cfcaf39916
 
       - name: Run Forge fmt check
         run: |
