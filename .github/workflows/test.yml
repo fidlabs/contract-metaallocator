@@ -44,7 +44,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-d94e3c631e2da7756af46c70f8f58b75563b7013
+          version: nightly
 
       - name: Run Forge fmt check
         run: |
@@ -57,6 +57,9 @@ jobs:
           forge --version
           forge build --build-info --sizes
         id: build_solidity
+
+      - name: Check if ABIs are up-to-date
+        run: ./check-abis.sh
 
       - name: Run Forge tests
         run: |
