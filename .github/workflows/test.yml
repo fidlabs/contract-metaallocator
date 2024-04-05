@@ -58,6 +58,9 @@ jobs:
           forge build --build-info --sizes
         id: build_solidity
 
+      - name: Check if ABIs are up-to-date
+        run: ./check-abis.sh
+
       - name: Run Forge tests
         run: |
           forge test -vvv
