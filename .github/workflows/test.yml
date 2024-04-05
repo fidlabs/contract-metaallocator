@@ -52,6 +52,12 @@ jobs:
           forge fmt --check
         id: fmt_solidity
 
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test_solidity
+
       - name: Run Forge build
         run: |
           forge --version
@@ -60,11 +66,6 @@ jobs:
 
       - name: Check if ABIs are up-to-date
         run: ./check-abis.sh
-
-      - name: Run Forge tests
-        run: |
-          forge test -vvv
-        id: test_solidity
 
       - name: Analyze with Slither
         uses: crytic/slither-action@v0.3.2
