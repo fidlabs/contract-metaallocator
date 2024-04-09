@@ -58,10 +58,9 @@ contract AllocatorTest is Test {
     }
 
     function testSetAlowance() public {
-        uint256 currentAllowance = allocator.allowance(vm.addr(1));
         allocator.setAllowance(vm.addr(1), 100);
         uint256 allowanceAfterFirstSet = allocator.allowance(vm.addr(1));
-        assertEq(currentAllowance + 100, allowanceAfterFirstSet);
+        assertEq(allowanceAfterFirstSet, 100);
         allocator.setAllowance(vm.addr(1), 10);
         uint256 allowanceAfterSecondSet = allocator.allowance(vm.addr(1));
         assertEq(allowanceAfterSecondSet, 10);
