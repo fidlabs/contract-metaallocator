@@ -20,9 +20,9 @@ contract Deployer {
 }
 
 contract VerifregActorMock {
-  fallback(bytes calldata) external payable returns (bytes memory) {
-    return abi.encode(0, 0x00, "");
-  }
+    fallback(bytes calldata) external payable returns (bytes memory) {
+        return abi.encode(0, 0x00, "");
+    }
 }
 
 contract AllocatorTest is Test {
@@ -31,7 +31,7 @@ contract AllocatorTest is Test {
     Allocator public allocator;
     address public proxy;
     VerifregActorMock public verifregActorMock;
-    address constant public CALL_ACTOR_ID = 0xfe00000000000000000000000000000000000005;
+    address public constant CALL_ACTOR_ID = 0xfe00000000000000000000000000000000000005;
 
     function setUp() public {
         deployer = new Deployer();
