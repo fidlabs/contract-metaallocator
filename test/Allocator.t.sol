@@ -48,7 +48,7 @@ contract AllocatorTest is Test {
         uint256 currentAllowance = allocator.allowance(vm.addr(1));
         allocator.addAllowance(vm.addr(1), 100);
         uint256 newAllowance = allocator.allowance(vm.addr(1));
-        assertTrue(currentAllowance + 100 == newAllowance);
+        assertEq(currentAllowance + 100, newAllowance);
     }
 
     function testOwnableAddAlowance() public {
@@ -61,10 +61,13 @@ contract AllocatorTest is Test {
         uint256 currentAllowance = allocator.allowance(vm.addr(1));
         allocator.setAllowance(vm.addr(1), 100);
         uint256 allowanceAfterFirstSet = allocator.allowance(vm.addr(1));
-        assertTrue(currentAllowance + 100 == allowanceAfterFirstSet);
+        assertEq(currentAllowance + 100, allowanceAfterFirstSet);
         allocator.setAllowance(vm.addr(1), 10);
         uint256 allowanceAfterSecondSet = allocator.allowance(vm.addr(1));
-        assertTrue(allowanceAfterSecondSet == 10);
+        assertEq(allowanceAfterSecondSet, 10);
+        allocator.setAllowance(vm.addr(1), 0);
+        uint256 allowanceAfterSetToZero = allocator.allowance(vm.addr(1));
+        assertEq(allowanceAfterSetToZero, 0);
     }
 
     function testOwnableSetAlowance() public {
