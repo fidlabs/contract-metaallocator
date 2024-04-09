@@ -19,17 +19,27 @@ contract Deployer {
     }
 }
 
+contract VerifregActorMock {
+    fallback(bytes calldata) external payable returns (bytes memory) {
+        return abi.encode(0, 0x00, "");
+    }
+}
+
 contract AllocatorTest is Test {
     Deployer public deployer;
     Options public opts;
     Allocator public allocator;
     address public proxy;
+    VerifregActorMock public verifregActorMock;
+    address public constant CALL_ACTOR_ID = 0xfe00000000000000000000000000000000000005;
 
     function setUp() public {
         deployer = new Deployer();
         opts.referenceContract = "Allocator.sol";
         proxy = Upgrades.deployUUPSProxy("Allocator.sol", abi.encodeCall(Allocator.initialize, (address(this))));
         allocator = Allocator(proxy);
+        verifregActorMock = new VerifregActorMock();
+        vm.etch(CALL_ACTOR_ID, address(verifregActorMock).code);
     }
 
     function testUUPS() public {
