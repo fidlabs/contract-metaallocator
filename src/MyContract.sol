@@ -7,6 +7,10 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract MyContract is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+    mapping(address allocatorAddress => uint256 amount) public allowances;
+
+    event AllowanceChanged(address indexed allocatorAddress, uint256 newAllowance);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -19,4 +23,14 @@ contract MyContract is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    function addAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
+        allowances[allocatorAddress] += amount;
+        emit AllowanceChanged(allocatorAddress, allowances[allocatorAddress]);
+    }
+
+    function setAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
+        allowances[allocatorAddress] == amount;
+        emit AllowanceChanged(allocatorAddress, allowances[allocatorAddress]);
+    }
 }
