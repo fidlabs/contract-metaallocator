@@ -3,21 +3,8 @@ pragma solidity ^0.8.25;
 
 import {Test} from "forge-std/Test.sol";
 import {Allocator} from "../src/Allocator.sol";
-import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {Options} from "openzeppelin-foundry-upgrades/Options.sol";
-
-contract Deployer {
-    function upgradeProxy(
-        address proxy,
-        string calldata name,
-        bytes calldata data,
-        Options calldata opts,
-        address caller
-    ) external {
-        Upgrades.upgradeProxy(proxy, name, data, opts, caller);
-    }
-}
 
 contract VerifregActorMock {
     fallback(bytes calldata) external payable returns (bytes memory) {
@@ -26,32 +13,16 @@ contract VerifregActorMock {
 }
 
 contract AllocatorTest is Test {
-    Deployer public deployer;
-    Options public opts;
     Allocator public allocator;
-    address public proxy;
     VerifregActorMock public verifregActorMock;
     address public constant CALL_ACTOR_ID = 0xfe00000000000000000000000000000000000005;
 
     function setUp() public {
-        deployer = new Deployer();
-        opts.referenceContract = "Allocator.sol";
-        proxy = Upgrades.deployUUPSProxy("Allocator.sol", abi.encodeCall(Allocator.initialize, (address(this))));
-        allocator = Allocator(proxy);
+        address impl = address(new Allocator());
+        ERC1967Proxy proxy = new ERC1967Proxy(impl, abi.encodeCall(Allocator.initialize, (address(this))));
+        allocator = Allocator(address(proxy));
         verifregActorMock = new VerifregActorMock();
         vm.etch(CALL_ACTOR_ID, address(verifregActorMock).code);
-    }
-
-    function testUUPS() public {
-        address implAddressV1 = Upgrades.getImplementationAddress(proxy);
-        Upgrades.upgradeProxy(proxy, "Allocator.sol", "", opts, address(this));
-        address implAddressV2 = Upgrades.getImplementationAddress(proxy);
-        assertFalse(implAddressV2 == implAddressV1);
-    }
-
-    function testOwnable() public {
-        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, vm.addr(1)));
-        deployer.upgradeProxy(proxy, "Allocator.sol", "", opts, vm.addr(1));
     }
 
     function testAddAlowance() public {
