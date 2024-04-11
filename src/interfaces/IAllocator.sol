@@ -5,7 +5,7 @@ interface IAllocator {
     error InsufficientAllowance();
 
     event AllowanceChanged(address indexed allocator, uint256 allowanceBefore, uint256 allowanceAfter);
-    event DatacapAllocated(address indexed allocator, address indexed client, uint256 amount);
+    event DatacapAllocated(address indexed allocator, bytes indexed client, uint256 amount);
 
     /// List all accounts that have allowance
     function allocators() external view returns (address[] memory);
@@ -25,5 +25,5 @@ interface IAllocator {
 
     /// @dev Emits DatacapAllocated event
     /// @dev Reverts with InsufficientAllowance if caller doesn't have sufficient allowance
-    function addVerifiedClient(address clientAddress, uint256 amount) external;
+    function addVerifiedClient(bytes calldata clientAddress, uint256 amount) external;
 }

@@ -23,8 +23,8 @@
     "inputs": [
       {
         "name": "clientAddress",
-        "type": "address",
-        "internalType": "address"
+        "type": "bytes",
+        "internalType": "bytes"
       },
       {
         "name": "amount",
@@ -122,9 +122,9 @@
       },
       {
         "name": "client",
-        "type": "address",
+        "type": "bytes",
         "indexed": true,
-        "internalType": "address"
+        "internalType": "bytes"
       },
       {
         "name": "amount",
