@@ -6,6 +6,10 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IAllocator} from "./interfaces/IAllocator.sol";
+import {VerifRegAPI} from "filecoin-solidity/contracts/v0.8/VerifRegAPI.sol";
+import {VerifRegTypes} from "filecoin-solidity/contracts/v0.8/types/VerifRegTypes.sol";
+import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
+import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 
 contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAllocator {
     mapping(address allocatorAddress => uint256 amount) public allowance;
@@ -35,8 +39,17 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
         emit AllowanceChanged(allocatorAddress, allowanceBefore, allowance[allocatorAddress]);
     }
 
-    // solhint-disable-next-line no-empty-blocks
-    function addVerifiedClient(address clientAddress, uint256 amount) external onlyOwner {}
+    /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
+    function addVerifiedClient(bytes calldata clientAddress, uint256 amount) external {
+        if (allowance[msg.sender] < amount) revert InsufficientAllowance();
+        allowance[msg.sender] -= amount;
+        emit DatacapAllocated(msg.sender, clientAddress, amount);
+        VerifRegTypes.AddVerifiedClientParams memory params = VerifRegTypes.AddVerifiedClientParams({
+            addr: FilAddresses.fromBytes(clientAddress),
+            allowance: CommonTypes.BigInt(abi.encodePacked(amount), false)
+        });
+        VerifRegAPI.addVerifiedClient(params);
+    }
 
     // solhint-disable-next-line no-empty-blocks
     function allocators() external view returns (address[] memory) {}
