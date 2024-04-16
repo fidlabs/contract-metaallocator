@@ -13,6 +13,7 @@ import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.
 
 contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAllocator {
     mapping(address allocatorAddress => uint256 amount) public allowance;
+    address[] public allocators;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -28,20 +29,30 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     function addAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
+        if (amount == 0) revert AmountEqualZero();
         uint256 allowanceBefore = allowance[allocatorAddress];
+        if (allowanceBefore == 0) allocators.push(allocatorAddress);
         allowance[allocatorAddress] += amount;
         emit AllowanceChanged(allocatorAddress, allowanceBefore, allowance[allocatorAddress]);
     }
 
     function setAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
         uint256 allowanceBefore = allowance[allocatorAddress];
+        if (allowanceBefore == 0 && amount > 0) {
+            allocators.push(allocatorAddress);
+        } else if (allowanceBefore > 0 && amount == 0) {
+            _removeFromAllocators(allocatorAddress);
+        }
         allowance[allocatorAddress] = amount;
         emit AllowanceChanged(allocatorAddress, allowanceBefore, allowance[allocatorAddress]);
     }
 
     /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
     function addVerifiedClient(bytes calldata clientAddress, uint256 amount) external {
-        if (allowance[msg.sender] < amount) revert InsufficientAllowance();
+        if (amount == 0) revert AmountEqualZero();
+        uint256 allocatorBalance = allowance[msg.sender];
+        if (allocatorBalance < amount) revert InsufficientAllowance();
+        if (allocatorBalance - amount == 0) _removeFromAllocators(msg.sender);
         allowance[msg.sender] -= amount;
         emit DatacapAllocated(msg.sender, clientAddress, amount);
         VerifRegTypes.AddVerifiedClientParams memory params = VerifRegTypes.AddVerifiedClientParams({
@@ -51,6 +62,19 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
         VerifRegAPI.addVerifiedClient(params);
     }
 
-    // solhint-disable-next-line no-empty-blocks
-    function allocators() external view returns (address[] memory) {}
+    function getAllocators() external view returns (address[] memory) {
+        return allocators;
+    }
+
+    function _removeFromAllocators(address addressToRemove) internal {
+        for (uint256 i = 0; i < allocators.length; i++) {
+            if (allocators[i] == addressToRemove) {
+                if (i != allocators.length - 1) {
+                    allocators[i] = allocators[allocators.length - 1];
+                }
+                allocators.pop();
+                break;
+            }
+        }
+    }
 }
