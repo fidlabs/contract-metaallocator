@@ -29,6 +29,7 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     function addAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
+        if (amount == 0) revert AmountEqualZero();
         uint256 allowanceBefore = allowance[allocatorAddress];
         if (allowanceBefore == 0) allocators.push(allocatorAddress);
         allowance[allocatorAddress] += amount;
@@ -48,6 +49,7 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
 
     /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
     function addVerifiedClient(bytes calldata clientAddress, uint256 amount) external {
+        if (amount == 0) revert AmountEqualZero();
         uint256 allocatorBalance = allowance[msg.sender];
         if (allocatorBalance < amount) revert InsufficientAllowance();
         if (allocatorBalance - amount == 0) _removeFromAllocators(msg.sender);
@@ -67,8 +69,11 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     function _removeFromAllocators(address addressToRemove) internal {
         for (uint256 i = 0; i < allocators.length; i++) {
             if (allocators[i] == addressToRemove) {
-                allocators[i] = allocators[allocators.length - 1];
+                if (i != allocators.length - 1) {
+                    allocators[i] = allocators[allocators.length - 1];
+                }
                 allocators.pop();
+                break;
             }
         }
     }

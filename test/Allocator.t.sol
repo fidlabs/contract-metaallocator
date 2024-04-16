@@ -118,14 +118,25 @@ contract AllocatorTest is Test {
         assertEq(allocators.length, 3);
     }
 
-    function testDeleteFromAllocatorsAfterSetAllowanceToZero() public {
+    function testSetAllowance() public {
         allocator.setAllowance(vm.addr(1), 100);
         address[] memory allocators = allocator.getAllocators();
         assertEq(allocators[0], vm.addr(1));
         assertEq(allocators.length, 1);
     }
 
-    function testDeleteFromAllocatorsAfterSetAllowanceToZeroForMoreUsers() public {
+    function testDeleteFromAllocatorsAfterSetAllowanceToZeroForFirstUsers() public {
+        allocator.setAllowance(vm.addr(1), 100);
+        allocator.setAllowance(vm.addr(2), 100);
+        allocator.setAllowance(vm.addr(3), 100);
+        allocator.setAllowance(vm.addr(1), 0);
+        address[] memory allocators = allocator.getAllocators();
+        assertEq(allocators[0], vm.addr(3));
+        assertEq(allocators[1], vm.addr(2));
+        assertEq(allocators.length, 2);
+    }
+
+    function testDeleteFromAllocatorsAfterSetAllowanceToZeroForSecondUsers() public {
         allocator.setAllowance(vm.addr(1), 100);
         allocator.setAllowance(vm.addr(2), 100);
         allocator.setAllowance(vm.addr(3), 100);
@@ -133,6 +144,17 @@ contract AllocatorTest is Test {
         address[] memory allocators = allocator.getAllocators();
         assertEq(allocators[0], vm.addr(1));
         assertEq(allocators[1], vm.addr(3));
+        assertEq(allocators.length, 2);
+    }
+
+    function testDeleteFromAllocatorsAfterSetAllowanceToZeroForThirdUsers() public {
+        allocator.setAllowance(vm.addr(1), 100);
+        allocator.setAllowance(vm.addr(2), 100);
+        allocator.setAllowance(vm.addr(3), 100);
+        allocator.setAllowance(vm.addr(3), 0);
+        address[] memory allocators = allocator.getAllocators();
+        assertEq(allocators[0], vm.addr(1));
+        assertEq(allocators[1], vm.addr(2));
         assertEq(allocators.length, 2);
     }
 
@@ -149,5 +171,15 @@ contract AllocatorTest is Test {
         allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 100);
         address[] memory allocators = allocator.getAllocators();
         assertEq(allocators.length, 0);
+    }
+
+    function testAddAllowanceWithAmountEqualZero() public {
+        vm.expectRevert(IAllocator.AmountEqualZero.selector);
+        allocator.addAllowance(vm.addr(1), 0);
+    }
+
+    function testAddVerifiedClientWithAmountEqualZero() public {
+        vm.expectRevert(IAllocator.AmountEqualZero.selector);
+        allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 0);
     }
 }

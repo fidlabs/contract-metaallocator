@@ -323,6 +323,11 @@
   },
   {
     "type": "error",
+    "name": "AmountEqualZero",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ERC1967InvalidImplementation",
     "inputs": [
       {

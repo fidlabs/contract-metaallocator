@@ -137,6 +137,11 @@
   },
   {
     "type": "error",
+    "name": "AmountEqualZero",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InsufficientAllowance",
     "inputs": []
   }
