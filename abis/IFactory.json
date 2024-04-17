@@ -26,11 +26,37 @@
     "stateMutability": "view"
   },
   {
+    "type": "function",
+    "name": "setImplementation",
+    "inputs": [
+      {
+        "name": "implementation_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "event",
     "name": "Deployed",
     "inputs": [
       {
         "name": "deployedContractAddress",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NewImplementationSet",
+    "inputs": [
+      {
+        "name": "implemetation_",
         "type": "address",
         "indexed": false,
         "internalType": "address"
