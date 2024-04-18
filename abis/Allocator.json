@@ -304,12 +304,12 @@
   },
   {
     "type": "error",
-    "name": "AmountEqualZero",
+    "name": "AlreadyZero",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "CanNotSetAmoutEqualZeroForNonExistingUser",
+    "name": "AmountEqualZero",
     "inputs": []
   },
   {
@@ -327,17 +327,6 @@
     "type": "error",
     "name": "ERC1967NonPayable",
     "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "EnumerableMapNonexistentKey",
-    "inputs": [
-      {
-        "name": "key",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
   },
   {
     "type": "error",

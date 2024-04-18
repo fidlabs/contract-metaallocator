@@ -6,7 +6,6 @@ import {Allocator} from "../src/Allocator.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IAllocator} from "../src/interfaces/IAllocator.sol";
-import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 contract VerifregActorMock {
     fallback(bytes calldata) external payable returns (bytes memory) {
@@ -18,8 +17,6 @@ contract AllocatorTest is Test {
     Allocator public allocator;
     VerifregActorMock public verifregActorMock;
     address public constant CALL_ACTOR_ID = 0xfe00000000000000000000000000000000000005;
-
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     function setUp() public {
         address impl = address(new Allocator());
@@ -193,8 +190,8 @@ contract AllocatorTest is Test {
         allocator.upgradeToAndCall(newImpl, "");
     }
 
-    function testRevertSetAllowanceForNonExisitngUserAndAmountEqualZero() public {
-        vm.expectRevert(IAllocator.CanNotSetAmoutEqualZeroForNonExistingUser.selector);
+    function testRevertAlreadyZeroAllowance() public {
+        vm.expectRevert(IAllocator.AlreadyZero.selector);
         allocator.setAllowance(vm.addr(1), 0);
     }
 }

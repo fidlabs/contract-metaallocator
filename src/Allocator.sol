@@ -31,7 +31,8 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     function allowance(address allocator) public view returns (uint256) {
-        return _allocators.contains(allocator) ? _allocators.get(allocator) : 0;
+        (, uint256 amount) = _allocators.tryGet(allocator);
+        return amount;
     }
 
     function addAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
@@ -44,7 +45,7 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     function setAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
         uint256 allowanceBefore = allowance(allocatorAddress);
         if (allowanceBefore == 0 && amount == 0) {
-            revert CanNotSetAmoutEqualZeroForNonExistingUser();
+            revert AlreadyZero();
         } else if (amount > 0) {
             _allocators.set(allocatorAddress, amount);
         } else if (allowanceBefore > 0 && amount == 0) {

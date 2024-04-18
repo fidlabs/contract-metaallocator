@@ -137,12 +137,12 @@
   },
   {
     "type": "error",
-    "name": "AmountEqualZero",
+    "name": "AlreadyZero",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "CanNotSetAmoutEqualZeroForNonExistingUser",
+    "name": "AmountEqualZero",
     "inputs": []
   },
   {
