@@ -137,6 +137,11 @@
   },
   {
     "type": "error",
+    "name": "AlreadyZero",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "AmountEqualZero",
     "inputs": []
   },

@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 interface IAllocator {
     error InsufficientAllowance();
     error AmountEqualZero();
+    error AlreadyZero();
 
     event AllowanceChanged(address indexed allocator, uint256 allowanceBefore, uint256 allowanceAfter);
     event DatacapAllocated(address indexed allocator, bytes indexed client, uint256 amount);

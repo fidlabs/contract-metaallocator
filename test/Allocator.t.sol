@@ -182,4 +182,16 @@ contract AllocatorTest is Test {
         vm.expectRevert(IAllocator.AmountEqualZero.selector);
         allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 0);
     }
+
+    function testAuthorizeUpgrade() public {
+        address newImpl = address(new Allocator());
+        vm.prank(vm.addr(1));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, vm.addr(1)));
+        allocator.upgradeToAndCall(newImpl, "");
+    }
+
+    function testRevertAlreadyZeroAllowance() public {
+        vm.expectRevert(IAllocator.AlreadyZero.selector);
+        allocator.setAllowance(vm.addr(1), 0);
+    }
 }
