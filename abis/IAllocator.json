@@ -142,6 +142,11 @@
   },
   {
     "type": "error",
+    "name": "CanNotSetAmoutEqualZeroForNonExistingUser",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InsufficientAllowance",
     "inputs": []
   }

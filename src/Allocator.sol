@@ -10,10 +10,12 @@ import {VerifRegAPI} from "filecoin-solidity/contracts/v0.8/VerifRegAPI.sol";
 import {VerifRegTypes} from "filecoin-solidity/contracts/v0.8/types/VerifRegTypes.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
+import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAllocator {
-    mapping(address allocatorAddress => uint256 amount) public allowance;
-    address[] public allocators;
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
+
+    EnumerableMap.AddressToUintMap private _allocators;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -28,32 +30,39 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
+    function allowance(address allocator) public view returns (uint256) {
+        return _allocators.contains(allocator) ? _allocators.get(allocator) : 0;
+    }
+
     function addAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
         if (amount == 0) revert AmountEqualZero();
-        uint256 allowanceBefore = allowance[allocatorAddress];
-        if (allowanceBefore == 0) allocators.push(allocatorAddress);
-        allowance[allocatorAddress] += amount;
-        emit AllowanceChanged(allocatorAddress, allowanceBefore, allowance[allocatorAddress]);
+        uint256 allowanceBefore = allowance(allocatorAddress);
+        _allocators.set(allocatorAddress, allowanceBefore + amount);
+        emit AllowanceChanged(allocatorAddress, allowanceBefore, allowance(allocatorAddress));
     }
 
     function setAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
-        uint256 allowanceBefore = allowance[allocatorAddress];
-        if (allowanceBefore == 0 && amount > 0) {
-            allocators.push(allocatorAddress);
+        uint256 allowanceBefore = allowance(allocatorAddress);
+        if (allowanceBefore == 0 && amount == 0) {
+            revert CanNotSetAmoutEqualZeroForNonExistingUser();
+        } else if (amount > 0) {
+            _allocators.set(allocatorAddress, amount);
         } else if (allowanceBefore > 0 && amount == 0) {
-            _removeFromAllocators(allocatorAddress);
+            _allocators.remove(allocatorAddress);
         }
-        allowance[allocatorAddress] = amount;
-        emit AllowanceChanged(allocatorAddress, allowanceBefore, allowance[allocatorAddress]);
+        emit AllowanceChanged(allocatorAddress, allowanceBefore, allowance(allocatorAddress));
     }
 
     /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
     function addVerifiedClient(bytes calldata clientAddress, uint256 amount) external {
         if (amount == 0) revert AmountEqualZero();
-        uint256 allocatorBalance = allowance[msg.sender];
+        uint256 allocatorBalance = allowance(msg.sender);
         if (allocatorBalance < amount) revert InsufficientAllowance();
-        if (allocatorBalance - amount == 0) _removeFromAllocators(msg.sender);
-        allowance[msg.sender] -= amount;
+        if (allocatorBalance - amount == 0) {
+            _allocators.remove(msg.sender);
+        } else {
+            _allocators.set(msg.sender, allocatorBalance - amount);
+        }
         emit DatacapAllocated(msg.sender, clientAddress, amount);
         VerifRegTypes.AddVerifiedClientParams memory params = VerifRegTypes.AddVerifiedClientParams({
             addr: FilAddresses.fromBytes(clientAddress),
@@ -63,18 +72,6 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     }
 
     function getAllocators() external view returns (address[] memory) {
-        return allocators;
-    }
-
-    function _removeFromAllocators(address addressToRemove) internal {
-        for (uint256 i = 0; i < allocators.length; i++) {
-            if (allocators[i] == addressToRemove) {
-                if (i != allocators.length - 1) {
-                    allocators[i] = allocators[allocators.length - 1];
-                }
-                allocators.pop();
-                break;
-            }
-        }
+        return _allocators.keys();
     }
 }
