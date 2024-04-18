@@ -30,9 +30,8 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    function allowance(address allocator) public view returns (uint256) {
-        (, uint256 amount) = _allocators.tryGet(allocator);
-        return amount;
+    function allowance(address allocator) public view returns (uint256 amount) {
+        (, amount) = _allocators.tryGet(allocator);
     }
 
     function addAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
