@@ -6,4 +6,7 @@ ast = true
 ffi = true
 build_info = true
 extra_output = ["storageLayout"]
+via_ir=false
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+[profile.default.optimizer_details]
+yul=false

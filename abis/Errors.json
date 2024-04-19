@@ -1,0 +1,52 @@
+[
+  {
+    "type": "error",
+    "name": "AlreadyZero",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AmountEqualZero",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FunctionDisabled",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientAllowance",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidAllocationRequest",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidOperatorData",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotAllowedSP",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotClient",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotManager",
+    "inputs": []
+  }
+]
