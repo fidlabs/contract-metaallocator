@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -euo pipefail
-apt-get update && apt-get install lcov
+sudo apt-get update && sudo apt-get install lcov
 
 forge clean && forge coverage --report lcov
 
