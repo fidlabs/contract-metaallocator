@@ -10,6 +10,7 @@ import {VerifRegAPI} from "filecoin-solidity/contracts/v0.8/VerifRegAPI.sol";
 import {VerifRegTypes} from "filecoin-solidity/contracts/v0.8/types/VerifRegTypes.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
+import {Errors} from "./libs/Errors.sol";
 
 contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAllocator {
     mapping(address allocatorAddress => uint256 amount) public allowance;
@@ -29,7 +30,7 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     function addAllowance(address allocatorAddress, uint256 amount) external onlyOwner {
-        if (amount == 0) revert AmountEqualZero();
+        if (amount == 0) revert Errors.AmountEqualZero();
         uint256 allowanceBefore = allowance[allocatorAddress];
         if (allowanceBefore == 0) allocators.push(allocatorAddress);
         allowance[allocatorAddress] += amount;
@@ -49,9 +50,9 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
 
     /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
     function addVerifiedClient(bytes calldata clientAddress, uint256 amount) external {
-        if (amount == 0) revert AmountEqualZero();
+        if (amount == 0) revert Errors.AmountEqualZero();
         uint256 allocatorBalance = allowance[msg.sender];
-        if (allocatorBalance < amount) revert InsufficientAllowance();
+        if (allocatorBalance < amount) revert Errors.InsufficientAllowance();
         if (allocatorBalance - amount == 0) _removeFromAllocators(msg.sender);
         allowance[msg.sender] -= amount;
         emit DatacapAllocated(msg.sender, clientAddress, amount);

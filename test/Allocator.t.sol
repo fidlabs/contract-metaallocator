@@ -6,6 +6,7 @@ import {Allocator} from "../src/Allocator.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IAllocator} from "../src/interfaces/IAllocator.sol";
+import {Errors} from "../src/libs/Errors.sol";
 
 contract VerifregActorMock {
     fallback(bytes calldata) external payable returns (bytes memory) {
@@ -61,7 +62,7 @@ contract AllocatorTest is Test {
         allocator.addAllowance(vm.addr(1), 100);
         vm.prank(vm.addr(1));
         //TODO use proper address
-        vm.expectRevert(IAllocator.InsufficientAllowance.selector);
+        vm.expectRevert(Errors.InsufficientAllowance.selector);
         allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 150);
     }
 
@@ -174,12 +175,12 @@ contract AllocatorTest is Test {
     }
 
     function testAddAllowanceWithAmountEqualZero() public {
-        vm.expectRevert(IAllocator.AmountEqualZero.selector);
+        vm.expectRevert(Errors.AmountEqualZero.selector);
         allocator.addAllowance(vm.addr(1), 0);
     }
 
     function testAddVerifiedClientWithAmountEqualZero() public {
-        vm.expectRevert(IAllocator.AmountEqualZero.selector);
+        vm.expectRevert(Errors.AmountEqualZero.selector);
         allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 0);
     }
 }
