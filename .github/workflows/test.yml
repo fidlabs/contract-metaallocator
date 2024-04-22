@@ -57,6 +57,9 @@ jobs:
           forge test -vvv
         id: test_solidity
 
+      - name: Check test coverage
+        run: ./check-full-coverage.sh
+
       - name: Run Forge build
         run: |
           forge --version
