@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import {Script} from "forge-std/Script.sol";
 import {Allocator} from "../src/Allocator.sol";
 import {Factory} from "../src/Factory.sol";
+
 contract DeployDevAllocator is Script {
     Factory public factory;
 
