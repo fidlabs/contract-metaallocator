@@ -1,78 +1,140 @@
-## Foundry
+# Contract metaallocator
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Management system to provide simpler allowance transfer between RKH, notaries, and clients
 
-Foundry consists of:
+## Getting started
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### Install foundry
 
-## Documentation
+[Foundry documentation.](https://book.getfoundry.sh/)
 
-https://book.getfoundry.sh/
+### Install deps
 
-## Usage
+```shell
+$ forge install
+```
 
-### Build
+### Build contracts
 
 ```shell
 $ forge build
 ```
 
-### Test
+### Run tests
 
 ```shell
-$ forge test
+$ forge clean && forge test --ffi -vv
 ```
 
-### Format
+### Deploy manually to Filecoin
 
 ```shell
-$ forge fmt
+forge create --rpc-url <your_rpc_url>  --private-key <your_private_key> src/Allocator.sol:Allocator
 ```
-
-### Gas Snapshots
 
 ```shell
-$ forge snapshot
+forge create --rpc-url <your_rpc_url>  --private-key <your_private_key> src/Factory.sol:Factory --constructor-args "<initial_owner_address>" "<implementation_address>"
 ```
-
-### Anvil
 
 ```shell
-$ anvil
+cast send --rpc-url <your_rpc_url> --private-key=<your_private_key> <factory_contract_address> 'deploy(address)' <address_owner>
 ```
 
-### Deploy
+## Contracts
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+## Allocator.sol
 
-### Cast
+Upgradeable smart contract to manage the allowance.
 
-```shell
-$ cast <subcommand>
-```
+### Functions
 
-### Help
+`allowance(address allocator) public view returns (uint256 amount)`
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Returns the amount of the allowance for the notary.
 
-1. Run local node
-2. Check your filecoin address based on the eth address:
-   ./lotus evm stat eth_address
-3. Add founds for your filecoin address :
-   ./lotus send filecoin_address 1000000
-4. Add .env and to load the variables in the .env file run in terminal:
-   source .env
-5. Build contract:
-   forge build
-6. Deploy contract:
-   forge create --rpc-url $RPC_URL --private-key $PRIVATE_KEY src/Counter.sol:Counter
+- **Parameters:**
+
+  - `allocator`: Address of the notary whose allowance is queried.
+
+- **Returns:**
+  - `amount`: The amount of allowance for the specified notary.
+
+`addAllowance(address allocatorAddress, uint256 amount) external onlyOwner`
+
+Function to add an allowance for the notary. Invoked only by the contract owner.
+
+- **Parameters:**
+  - `allocatorAddress`: Address of the notary to add allowance for.
+  - `amount`: The amount of allowance to add.
+
+`setAllowance(address allocatorAddress, uint256 amount) external onlyOwner`
+
+Function to set an allowance for the notary. Invoked only by the contract owner. Allowance can be set to 0.
+
+- **Parameters:**
+  - `allocatorAddress`: Address of the notary to set allowance for.
+  - `amount`: The amount of allowance to set.
+
+`addVerifiedClient(bytes calldata clientAddress, uint256 amount) external`
+
+Function to add allowance to the client. Invoked only by the notary.
+
+- **Parameters:**
+  - `clientAddress`: Address of the client to add allowance for.
+  - `amount`: The amount of allowance to add.
+
+`getAllocators() external view returns (address[] memory)`
+
+Function to return all active notaries.
+
+- **Returns:**
+  - `address[] memory`: Array of addresses representing all active notaries.
+
+## Factory.sol
+
+Smart contract for deploying and managing instances of Allocator.sol
+
+### Constructor
+
+`constructor(address initialOwner, address implementation_)`
+
+Constructor to initialize the `Factory` contract.
+
+- **Parameters:**
+  - `initialOwner`: Address of the initial owner of the contract.
+  - `implementation_`: Address of the implementation contract.
+
+## Functions
+
+`getContracts() external view returns (address[] memory)`
+
+Function to retrieve the addresses of all deployed contracts.
+
+- **Returns:**
+  - `address[] memory`: Array of addresses representing deployed contracts.
+
+`deploy(address owner) external`
+
+Function to deploy a new instance of a contract.
+
+- **Parameters:**
+  - `owner`: Address of the owner for the new instance.
+
+`setImplementation(address implementation_) external onlyOwner`
+
+Function to set the implementation contract address.
+
+- **Parameters:**
+  - `implementation_`: Address of the new implementation contract.
+
+### [ABIs](https://github.com/fidlabs/contract-metaallocator/tree/main/abis)
+
+### Related tools
+
+[Filecoin PLUS](https://filplus-registry.netlify.app/)
+
+Website to communicate with the smart contract
+
+[contract-metaallocator-cli](https://github.com/fidlabs/contract-metaallocator-cli)
+
+CLI to communicate with the smart contract
