@@ -1,12 +1,11 @@
 #!/bin/bash
 
 set -euo pipefail
-sudo apt-get update && sudo apt-get install lcov
+sudo apt-get install lcov
 
 forge clean && forge coverage --report lcov
 
-nl=$'\n'
-awk '/TN:/,/SF:test\//{if (!/SF:test\//) print; if (/TN:$nlSF:test\//) exit}' lcov.info > lcon_without_tests.info
+awk '/TN:/,/SF:test\//{if (!/SF:test\// && !/SF:script/) print; if (/TN:/ && /SF:test\//) exit}' lcov.info > lcon_without_tests.info
 branches=$(genhtml lcon_without_tests.info -o report --branch-coverage)
 
 lines_coverage=$(echo "$branches" | awk '/lines/{print $2}' | tr -d '%')
