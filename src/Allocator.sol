@@ -43,6 +43,10 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
         __UUPSUpgradeable_init();
     }
 
+    /**
+     * @dev Internal. Used by Upgrades logic to check if upgrade is authorized.
+     * @dev Will revert (reject upgrade) if upgrade isn't called by contract owner.
+     */
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
