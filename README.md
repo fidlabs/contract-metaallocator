@@ -29,15 +29,36 @@ $ forge clean && forge test --ffi -vv
 ### Deploy manually to Filecoin
 
 ```shell
-forge create --rpc-url <your_rpc_url>  --private-key <your_private_key> src/Allocator.sol:Allocator
+> forge create --rpc-url <your_rpc_url>  --private-key <your_private_key> src/Allocator.sol:Allocator
+
+[⠊] Compiling...
+[⠢] Compiling 80 files with 0.8.25
+[⠆] Solc 0.8.25 finished in 11.11s
+Compiler run successful!
+Deployer: 0xE2328a0A7393914b2f8C4751b709Aa39fE9b7C2f
+Deployed to: 0x92C57F4085c76BA9a3D1E28540e5b1ba1Bc9175D
+Transaction hash: 0xad23ddbe533922692c379d4aeee66af839939993005ff40c57d6b9363e41d610
 ```
 
-```shell
-forge create --rpc-url <your_rpc_url>  --private-key <your_private_key> src/Factory.sol:Factory --constructor-args "<initial_owner_address>" "<implementation_address>"
-```
+implementation_address - address of the Allocator contract(deployed to) from command above
 
 ```shell
-cast send --rpc-url <your_rpc_url> --private-key=<your_private_key> <factory_contract_address> 'deploy(address)' <address_owner>
+> forge create --rpc-url <your_rpc_url>  --private-key <your_private_key> src/Factory.sol:Factory --constructor-args "<initial_owner_address>" "<implementation_address>"
+
+[⠢] Compiling...
+[⠒] Compiling 80 files with 0.8.25
+[⠘] Solc 0.8.25 finished in 11.32s
+Compiler run successful!
+Deployer: 0xE2328a0A7393914b2f8C4751b709Aa39fE9b7C2f
+Deployed to: 0x3b41c6Ee950B27A224ACf546f721BD925f01cA74
+Transaction hash: 0x9432b2bb50294d13158ea63d9bd619807dbcfd229bdd35f40a071a3ae737061b
+```
+
+factory_contract_address - address of the Factory contract(deployed to) from command above
+
+```shell
+> cast send --rpc-url <your_rpc_url> --private-key=<your_private_key> <factory_contract_address> 'deploy(address)' <address_owner>
+
 ```
 
 ## Contracts
@@ -131,7 +152,7 @@ Function to set the implementation contract address.
 
 ### Related tools
 
-[Filecoin PLUS](https://filplus-registry.netlify.app/)
+[Filecoin PLUS](https://github.com/filecoin-project/filplus-registry)
 
 Website to communicate with the smart contract
 
