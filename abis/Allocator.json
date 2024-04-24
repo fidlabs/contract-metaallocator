@@ -22,7 +22,7 @@
     "name": "addAllowance",
     "inputs": [
       {
-        "name": "allocatorAddress",
+        "name": "allocator",
         "type": "address",
         "internalType": "address"
       },
@@ -65,7 +65,7 @@
     ],
     "outputs": [
       {
-        "name": "amount",
+        "name": "allowance_",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -78,7 +78,7 @@
     "inputs": [],
     "outputs": [
       {
-        "name": "",
+        "name": "allocators",
         "type": "address[]",
         "internalType": "address[]"
       }
@@ -136,7 +136,7 @@
     "name": "setAllowance",
     "inputs": [
       {
-        "name": "allocatorAddress",
+        "name": "allocator",
         "type": "address",
         "internalType": "address"
       },
