@@ -16,7 +16,7 @@ interface IFactory {
 
     /**
      * @notice Return all Allocator contracts deployed by this Factory
-     * @return contracts Array of Allocator contracts
+     * @return contracts Array of Allocator contract addresses
      */
     function getContracts() external view returns (address[] memory contracts);
 

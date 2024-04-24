@@ -29,7 +29,7 @@ contract Factory is Ownable, IFactory {
 
     /**
      * @notice Return all Allocator contracts deployed by this Factory
-     * @return contracts_ Array of Allocator contracts
+     * @return contracts_ Array of Allocator contract addresses
      */
     function getContracts() external view returns (address[] memory contracts_) {
         return contracts;
