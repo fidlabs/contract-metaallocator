@@ -45,6 +45,9 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+      
+      - name: ⚙️ Install lcov
+        run: sudo apt-get -y install lcov
 
       - name: Run Forge fmt check
         run: |
@@ -58,7 +61,7 @@ jobs:
         id: test_solidity
 
       - name: Check test coverage
-        run: ./check-full-coverage.sh
+        run: ./ci/check-full-coverage.sh
 
       - name: Run Forge build
         run: |
@@ -67,4 +70,4 @@ jobs:
         id: build_solidity
 
       - name: Check if ABIs are up-to-date
-        run: ./check-abis.sh
+        run: ./ci/check-abis.sh
