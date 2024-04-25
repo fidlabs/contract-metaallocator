@@ -194,4 +194,20 @@ contract AllocatorTest is Test {
         vm.expectRevert(IAllocator.AlreadyZero.selector);
         allocator.setAllowance(vm.addr(1), 0);
     }
+
+    function testAddAllowanceAndAddClient(uint64 allowance, uint64 datacap) public {
+        vm.assume(allowance > 0 && datacap > 0);
+        allocator.addAllowance(vm.addr(1), allowance);
+        if (allowance < datacap) vm.expectRevert(IAllocator.InsufficientAllowance.selector);
+        vm.prank(vm.addr(1));
+        allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", datacap);
+    }
+
+    function testSetAllowanceAndAddClient(uint64 allowance, uint64 datacap) public {
+        vm.assume(allowance > 0 && datacap > 0);
+        allocator.setAllowance(vm.addr(1), allowance);
+        if (allowance < datacap) vm.expectRevert(IAllocator.InsufficientAllowance.selector);
+        vm.prank(vm.addr(1));
+        allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", datacap);
+    }
 }
