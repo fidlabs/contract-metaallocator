@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+cd "$(dirname "$0")"/..
+
 for i in src/*.sol src/**/*.sol; do
 	i="$(basename "$i")"
 	name="${i%.sol}"
