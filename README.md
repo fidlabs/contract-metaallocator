@@ -90,7 +90,7 @@ Function to add an allowance for the notary. Invoked only by the contract owner.
 
 `setAllowance(address allocatorAddress, uint256 amount) external onlyOwner`
 
-Function to set an allowance for the notary. Invoked only by the contract owner. Allowance can be set to 0.
+Function to set an allowance for the notary. Invoked only by the contract owner. Allowance can be set to 0. To set an allowance bigger than 0, allowance before must equal 0.
 
 - **Parameters:**
   - `allocatorAddress`: Address of the notary to set allowance for.

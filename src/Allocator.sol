@@ -86,7 +86,9 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
         uint256 allowanceBefore = allowance(allocator);
         if (allowanceBefore == 0 && amount == 0) {
             revert AlreadyZero();
-        } else if (amount > 0) {
+        } else if (allowanceBefore > 0 && amount > 0) {
+            revert AlreadyHasAllowance();
+        } else if (allowanceBefore == 0 && amount > 0) {
             _allocators.set(allocator, amount);
         } else if (allowanceBefore > 0 && amount == 0) {
             _allocators.remove(allocator);
