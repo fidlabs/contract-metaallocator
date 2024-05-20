@@ -137,6 +137,11 @@
   },
   {
     "type": "error",
+    "name": "AlreadyHasAllowance",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "AlreadyZero",
     "inputs": []
   },
