@@ -39,16 +39,12 @@ contract AllocatorTest is Test {
         allocator.addAllowance(vm.addr(1), 100);
     }
 
-    function testSetAlowance() public {
+    function testSetAllowanceBiggerThanZeroForExistingClient() public {
         allocator.setAllowance(vm.addr(1), 100);
         uint256 allowanceAfterFirstSet = allocator.allowance(vm.addr(1));
         assertEq(allowanceAfterFirstSet, 100);
+        vm.expectRevert(IAllocator.AlreadyHasAllowance.selector);
         allocator.setAllowance(vm.addr(1), 10);
-        uint256 allowanceAfterSecondSet = allocator.allowance(vm.addr(1));
-        assertEq(allowanceAfterSecondSet, 10);
-        allocator.setAllowance(vm.addr(1), 0);
-        uint256 allowanceAfterSetToZero = allocator.allowance(vm.addr(1));
-        assertEq(allowanceAfterSetToZero, 0);
     }
 
     function testOwnableSetAlowance() public {

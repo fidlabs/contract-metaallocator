@@ -17,6 +17,11 @@ interface IAllocator {
     error AmountEqualZero();
 
     /**
+     * @dev Thrown if trying to set allowance bigger than 0 when user has allowance, set allowance to 0 first if you want to set specific value
+     */
+    error AlreadyHasAllowance();
+
+    /**
      * @dev Thrown if trying to set allowance to 0 when it's already 0
      */
     error AlreadyZero();
