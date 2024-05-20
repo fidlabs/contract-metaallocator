@@ -47,13 +47,13 @@ contract Factory is Ownable, IFactory {
      * @dev Emits Deployed event
      */
     function deploy(address owner) external {
+        nonce[owner]++;
         bytes memory initCode = abi.encodePacked(
             type(ERC1967Proxy).creationCode, abi.encode(implementation, abi.encodeCall(Allocator.initialize, (owner)))
         );
         address proxy = Create2.deploy(0, keccak256(abi.encode(owner, nonce[owner])), initCode);
         emit Deployed(proxy);
         contracts.push(proxy);
-        nonce[owner]++;
     }
 
     /**
