@@ -63,5 +63,10 @@
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "FunctionDisabled",
+    "inputs": []
   }
 ]

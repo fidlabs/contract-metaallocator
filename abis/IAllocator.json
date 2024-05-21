@@ -152,6 +152,11 @@
   },
   {
     "type": "error",
+    "name": "FunctionDisabled",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InsufficientAllowance",
     "inputs": []
   }
