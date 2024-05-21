@@ -3,6 +3,11 @@ pragma solidity 0.8.25;
 
 interface IFactory {
     /**
+     * @dev Thrown if trying to call disabled function
+     */
+    error FunctionDisabled();
+
+    /**
      * @notice Emitted when new Allocator contract is deployed
      * @param deployedContractAddress Address of the deployed contract
      */

@@ -206,4 +206,15 @@ contract AllocatorTest is Test {
         vm.prank(vm.addr(1));
         allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", datacap);
     }
+
+    function testRevertRenounceOwnership() public {
+        vm.expectRevert(IAllocator.FunctionDisabled.selector);
+        allocator.renounceOwnership();
+    }
+
+    function testOwnershipRenounceOwnership() public {
+        vm.prank(vm.addr(1));
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, vm.addr(1)));
+        allocator.renounceOwnership();
+    }
 }
