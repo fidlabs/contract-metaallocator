@@ -2,7 +2,7 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity 0.8.25;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IAllocator} from "./interfaces/IAllocator.sol";
@@ -20,7 +20,7 @@ import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap
  * allowance on the contract, assigned by contract owner.
  * @dev Contract is upgradeable via UUPS by contract owner.
  */
-contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAllocator {
+contract Allocator is Initializable, Ownable2StepUpgradeable, UUPSUpgradeable, IAllocator {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     /**
@@ -127,5 +127,9 @@ contract Allocator is Initializable, OwnableUpgradeable, UUPSUpgradeable, IAlloc
      */
     function getAllocators() external view returns (address[] memory allocators) {
         return _allocators.keys();
+    }
+
+    function renounceOwnership() public view override onlyOwner {
+        revert FunctionDisabled();
     }
 }

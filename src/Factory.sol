@@ -4,15 +4,15 @@ pragma solidity 0.8.25;
 
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Allocator} from "./Allocator.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFactory} from "./interfaces/IFactory.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title Allocator Factory
  * @notice Factory for deploying new instances of Allocator Contract. Factory
  * owner can update the implementation used for deploying new instances.
  */
-contract Factory is Ownable, IFactory {
+contract Factory is Ownable2Step, IFactory {
     /**
      * @notice List of contracts deployed by this Factory
      */
@@ -55,5 +55,9 @@ contract Factory is Ownable, IFactory {
     function setImplementation(address implementation_) external onlyOwner {
         implementation = implementation_;
         emit NewImplementationSet(implementation_);
+    }
+
+    function renounceOwnership() public view override onlyOwner {
+        revert FunctionDisabled();
     }
 }

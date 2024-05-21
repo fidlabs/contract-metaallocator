@@ -60,4 +60,15 @@ contract FactoryTest is Test {
         }
         assertGt(size, 0);
     }
+
+    function testRevertRenounceOwnership() public {
+        vm.expectRevert(IFactory.FunctionDisabled.selector);
+        factory.renounceOwnership();
+    }
+
+    function testOwnershipRenounceOwnership() public {
+        vm.prank(vm.addr(1));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, vm.addr(1)));
+        factory.renounceOwnership();
+    }
 }

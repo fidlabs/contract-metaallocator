@@ -27,6 +27,11 @@ interface IAllocator {
     error AlreadyZero();
 
     /**
+     * @dev Thrown if trying to call disabled function
+     */
+    error FunctionDisabled();
+
+    /**
      * @notice Emitted when allocator's allowance is changed by manager
      * @param allocator Allocator whose allowance has changed
      * @param allowanceBefore Allowance before the change
