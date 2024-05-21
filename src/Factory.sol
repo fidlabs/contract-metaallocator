@@ -6,6 +6,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import {Allocator} from "./Allocator.sol";
 import {IFactory} from "./interfaces/IFactory.sol";
 import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 /**
  * @title Allocator Factory
@@ -22,6 +23,11 @@ contract Factory is Ownable2Step, IFactory {
      * @notice Implementation used when deploying new contracts
      */
     address public implementation;
+
+    /**
+     * @notice Mapping from owner address to amount of deploys
+     */
+    mapping(address owner => uint256 deployCounter) public nonce;
 
     constructor(address initialOwner, address implementation_) Ownable(initialOwner) {
         implementation = implementation_;
@@ -41,7 +47,11 @@ contract Factory is Ownable2Step, IFactory {
      * @dev Emits Deployed event
      */
     function deploy(address owner) external {
-        address proxy = address(new ERC1967Proxy(implementation, abi.encodeCall(Allocator.initialize, (owner))));
+        nonce[owner]++;
+        bytes memory initCode = abi.encodePacked(
+            type(ERC1967Proxy).creationCode, abi.encode(implementation, abi.encodeCall(Allocator.initialize, (owner)))
+        );
+        address proxy = Create2.deploy(0, keccak256(abi.encode(owner, nonce[owner])), initCode);
         emit Deployed(proxy);
         contracts.push(proxy);
     }

@@ -71,4 +71,18 @@ contract FactoryTest is Test {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, vm.addr(1)));
         factory.renounceOwnership();
     }
+
+    function testDifferentAddressesPerOwner() public {
+        factory.deploy(address(this));
+        factory.deploy(vm.addr(1));
+        address[] memory contracts = factory.getContracts();
+        assertNotEq(contracts[0], contracts[1]);
+    }
+
+    function testNewAddressPerContract() public {
+        factory.deploy(address(this));
+        factory.deploy(address(this));
+        address[] memory contracts = factory.getContracts();
+        assertNotEq(contracts[0], contracts[1]);
+    }
 }
