@@ -21,8 +21,10 @@ contract AllocatorHandler {
     }
 
     function setAllowanceAndTrack(address allocatorAddress, uint256 amount) external {
+        uint256 allowanceBeforeSet = allocator.allowance(allocatorAddress);
         allocator.setAllowance(allocatorAddress, amount);
-        sumOfNotaryAllowance = amount;
+        uint256 diff = amount - allowanceBeforeSet;
+        sumOfNotaryAllowance += diff;
     }
 
     function addVerifiedClient(bytes calldata clientAddress, uint256 amount) external {
