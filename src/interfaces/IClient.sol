@@ -36,6 +36,13 @@ interface IClient {
     event DatacapAllocated(address indexed allocator, CommonTypes.FilAddress indexed client, CommonTypes.BigInt amount);
 
     /**
+     * @notice Emitted when client config is changed by manager.
+     * @param client The Filecoin address of the client.
+     * @param maxDeviation The max allowed deviation from fair distribution of data between SPs.
+     */
+    event ClientConfigChanged(address indexed client, uint256 maxDeviation);
+
+    /**
      * @notice This function transfers DataCap tokens from the client to the storage provider
      * @dev This function can only be called by the client
      * @param params The parameters for the transfer
@@ -68,12 +75,11 @@ interface IClient {
     function allowances(address client) external view returns (uint256);
 
     /**
-     * @notice Checks if a storage provider is allowed for a specific client.
+     * @notice Get a set of SPs allowed for given client
      * @param client The address of the client.
-     * @param storageProvider The storage provider to check.
-     * @return True if the storage provider is allowed, false otherwise.
+     * @return providers List of allowed providers
      */
-    function clientSPs(address client, uint64 storageProvider) external view returns (bool);
+    function clientSPs(address client) external view returns (uint256[] memory providers);
 
     /**
      * @notice Increase client allowance

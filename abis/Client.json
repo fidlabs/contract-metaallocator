@@ -6,6 +6,19 @@
   },
   {
     "type": "function",
+    "name": "DENOMINATOR",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "acceptOwnership",
     "inputs": [],
     "outputs": [],
@@ -50,24 +63,62 @@
   },
   {
     "type": "function",
+    "name": "clientAllocationsPerSP",
+    "inputs": [
+      {
+        "name": "client",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "providers",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "allocations",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "clientConfigs",
+    "inputs": [
+      {
+        "name": "client",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "maxDeviationFromFairDistribution",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "clientSPs",
     "inputs": [
       {
         "name": "client",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "storageProvider",
-        "type": "uint64",
-        "internalType": "uint64"
       }
     ],
     "outputs": [
       {
-        "name": "allowedSP",
-        "type": "bool",
-        "internalType": "bool"
+        "name": "providers",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -193,6 +244,43 @@
   },
   {
     "type": "function",
+    "name": "setClientMaxDeviationFromFairDistribution",
+    "inputs": [
+      {
+        "name": "client",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "maxDeviation",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "totalAllocations",
+    "inputs": [
+      {
+        "name": "client",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "allocations",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "transfer",
     "inputs": [
       {
@@ -271,6 +359,25 @@
       },
       {
         "name": "allowanceAfter",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ClientConfigChanged",
+    "inputs": [
+      {
+        "name": "client",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "maxDeviation",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -450,6 +557,17 @@
   },
   {
     "type": "error",
+    "name": "EnumerableMapNonexistentKey",
+    "inputs": [
+      {
+        "name": "key",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "FailToCallActor",
     "inputs": []
   },
@@ -554,6 +672,22 @@
         "name": "account",
         "type": "address",
         "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnfairDistribution",
+    "inputs": [
+      {
+        "name": "maxPerSp",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "providedToSingleSp",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   }

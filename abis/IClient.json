@@ -44,18 +44,13 @@
         "name": "client",
         "type": "address",
         "internalType": "address"
-      },
-      {
-        "name": "storageProvider",
-        "type": "uint64",
-        "internalType": "uint64"
       }
     ],
     "outputs": [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "name": "providers",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
       }
     ],
     "stateMutability": "view"
@@ -181,6 +176,25 @@
       },
       {
         "name": "allowanceAfter",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ClientConfigChanged",
+    "inputs": [
+      {
+        "name": "client",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "maxDeviation",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
