@@ -73,7 +73,7 @@ jobs:
         run: ./ci/check-abis.sh
 
       - name: Analyze with Slither
-        uses: crytic/slither-action@v0.3.2
+        uses: crytic/slither-action@v0.4.0
         with:
           ignore-compile: true
           slither-version: 0.10.3
