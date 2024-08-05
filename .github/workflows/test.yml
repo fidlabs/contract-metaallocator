@@ -74,7 +74,4 @@ jobs:
 
       - name: Analyze with Slither
         uses: crytic/slither-action@v0.4.0
-        with:
-          ignore-compile: true
-          slither-version: 0.10.3
-          slither-args: --exclude solc-version --exclude-dependencies
+        run: slither .
