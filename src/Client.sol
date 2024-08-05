@@ -86,10 +86,22 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         if (size > max) revert Errors.UnfairDistribution(max, size);
     }
 
+    /**
+     * @notice Get a set of SPs allowed for given client.
+     * @param client The address of the client.
+     * @return providers List of allowed providers.
+     */
     function clientSPs(address client) external view returns (uint256[] memory providers) {
         providers = _clientSPs[client].values();
     }
 
+
+    /**
+     * @notice Get a sum of client allocations per SP.
+     * @param client The address of the client.
+     * @return providers List of providers for a specific client.
+     * @return allocations The sum of the client allocations per SP.
+     */
     function clientAllocationsPerSP(address client)
         external
         view
@@ -109,6 +121,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @dev This function can only be called by the owner
      * @param client The address of the client
      * @param maxDeviation Max allowed deviation. 0 = no slack, DENOMINATOR = 100% (based on total allocations of user)
+     * @dev Emits ClientConfigChanged event
      */
     function setClientMaxDeviationFromFairDistribution(address client, uint256 maxDeviation) external onlyOwner {
         clientConfigs[client] = maxDeviation;
@@ -236,6 +249,10 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         emit AllowanceChanged(client, allowanceBefore, allowances[client]);
     }
 
+    /**
+     * @notice Disable the renounceOwnership function which leaves the contract without an owner.
+     * @dev Reverts if trying to call
+     */
     function renounceOwnership() public view override onlyOwner {
         revert Errors.FunctionDisabled();
     }
