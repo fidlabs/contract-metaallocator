@@ -73,7 +73,7 @@ interface IClient {
      * @return The allowance of the client.
      */
     function allowances(address client) external view returns (uint256);
-    
+
     /**
      * @notice Get a set of SPs allowed for given client.
      * @param client The address of the client.
@@ -101,8 +101,11 @@ interface IClient {
      * @return providers List of providers.
      * @return allocations The sum of the client allocations per SP.
      */
-    function clientAllocationsPerSP(address client) external view returns (uint256[] memory providers, uint256[] memory allocations);
-    
+    function clientAllocationsPerSP(address client)
+        external
+        view
+        returns (uint256[] memory providers, uint256[] memory allocations);
+
     /**
      * @notice This function sets the maximum allowed deviation from a fair
      * distribution of data between storage providers.

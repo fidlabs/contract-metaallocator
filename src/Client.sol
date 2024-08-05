@@ -95,7 +95,6 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         providers = _clientSPs[client].values();
     }
 
-
     /**
      * @notice Get a sum of client allocations per SP.
      * @param client The address of the client.
