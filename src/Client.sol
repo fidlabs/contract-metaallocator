@@ -61,14 +61,17 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
             if (_clientAllocationsPerSP[msg.sender].contains(provider)) {
                 size += _clientAllocationsPerSP[msg.sender].get(provider);
             }
+            // slither-disable-next-line unused-return
             _clientAllocationsPerSP[msg.sender].set(provider, size);
             _ensureMaxDeviationIsNotExceeded(size);
         }
 
         allowances[msg.sender] -= parsedAmount;
+        emit DatacapAllocated(msg.sender, params.to, params.amount);
+        // slither-disable-start unused-return
         /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         DataCapAPI.transfer(params);
-        emit DatacapAllocated(msg.sender, params.to, params.amount);
+        // slither-disable-end unused-return
     }
 
     /**
@@ -135,6 +138,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      */
     function addAllowedSPsForClient(address client, uint64[] calldata allowedSPs_) external onlyOwner {
         for (uint256 i = 0; i < allowedSPs_.length; i++) {
+            // slither-disable-next-line unused-return
             _clientSPs[client].add(allowedSPs_[i]);
         }
         emit SPsAddedForClient(client, allowedSPs_);
@@ -148,6 +152,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      */
     function removeAllowedSPsForClient(address client, uint64[] calldata disallowedSPs_) external onlyOwner {
         for (uint256 i = 0; i < disallowedSPs_.length; i++) {
+            // slither-disable-next-line unused-return
             _clientSPs[client].remove(disallowedSPs_[i]);
         }
         emit SPsRemovedForClient(client, disallowedSPs_);
@@ -186,11 +191,13 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
             }
 
             (provider, byteIdx) = CBORDecoder.readUInt64(cborData, byteIdx);
+            // slither-disable-start unused-return
             (, byteIdx) = CBORDecoder.readBytes(cborData, byteIdx); // data (CID)
             (size, byteIdx) = CBORDecoder.readUInt64(cborData, byteIdx);
             (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx); // termMin
             (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx); // termMax
             (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx); // expiration
+            // slither-disable-end unused-return
 
             providers[i] = provider;
             sizes[i] = size;
