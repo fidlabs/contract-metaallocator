@@ -48,5 +48,21 @@
     "type": "error",
     "name": "NotManager",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnfairDistribution",
+    "inputs": [
+      {
+        "name": "maxPerSp",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "providedToSingleSp",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   }
 ]

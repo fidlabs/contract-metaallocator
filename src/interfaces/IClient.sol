@@ -36,6 +36,13 @@ interface IClient {
     event DatacapAllocated(address indexed allocator, CommonTypes.FilAddress indexed client, CommonTypes.BigInt amount);
 
     /**
+     * @notice Emitted when client config is changed by manager.
+     * @param client The Filecoin address of the client.
+     * @param maxDeviation The max allowed deviation from fair distribution of data between SPs.
+     */
+    event ClientConfigChanged(address indexed client, uint256 maxDeviation);
+
+    /**
      * @notice This function transfers DataCap tokens from the client to the storage provider
      * @dev This function can only be called by the client
      * @param params The parameters for the transfer
@@ -68,12 +75,46 @@ interface IClient {
     function allowances(address client) external view returns (uint256);
 
     /**
-     * @notice Checks if a storage provider is allowed for a specific client.
+     * @notice Get a set of SPs allowed for given client.
      * @param client The address of the client.
-     * @param storageProvider The storage provider to check.
-     * @return True if the storage provider is allowed, false otherwise.
+     * @return providers List of allowed providers.
      */
-    function clientSPs(address client, uint64 storageProvider) external view returns (bool);
+    function clientSPs(address client) external view returns (uint256[] memory providers);
+
+    /**
+     * @notice Get max deviation from fair distribution for given client.
+     * @param client The address of the client.
+     * @return maxDeviationFromFairDistribution Max deviation from fair distribution.
+     */
+    function clientConfigs(address client) external view returns (uint256 maxDeviationFromFairDistribution);
+
+    /**
+     * @notice Get a sum of client allocations.
+     * @param client The address of the client.
+     * @return allocations The sum of the client allocations.
+     */
+    function totalAllocations(address client) external view returns (uint256 allocations);
+
+    /**
+     * @notice Get a sum of client allocations per SP.
+     * @param client The address of the client.
+     * @return providers List of providers.
+     * @return allocations The sum of the client allocations per SP.
+     */
+    function clientAllocationsPerSP(address client)
+        external
+        view
+        returns (uint256[] memory providers, uint256[] memory allocations);
+
+    /**
+     * @notice This function sets the maximum allowed deviation from a fair
+     * distribution of data between storage providers.
+     * @dev This function can only be called by the owner
+     * @param client The address of the client
+     * @param maxDeviation Max allowed deviation. 0 = no slack, DENOMINATOR = 100% (based on total allocations of user)
+     * @dev Emits ClientConfigChanged event
+     */
+    function setClientMaxDeviationFromFairDistribution(address client, uint256 maxDeviation) external;
 
     /**
      * @notice Increase client allowance

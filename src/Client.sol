@@ -10,10 +10,21 @@ import {IClient} from "./interfaces/IClient.sol";
 import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpgradeable {
+    using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableMap for EnumerableMap.UintToUintMap;
+
+    uint256 public constant DENOMINATOR = 10000;
+
     mapping(address client => uint256 allowance) public allowances;
-    mapping(address client => mapping(uint64 storageProvider => bool allowedSP) allowedSPs) public clientSPs;
+    mapping(address client => EnumerableSet.UintSet allowedSPs) internal _clientSPs;
+
+    mapping(address client => uint256 allocations) public totalAllocations;
+    mapping(address client => uint256 maxDeviationFromFairDistribution) public clientConfigs;
+    mapping(address client => EnumerableMap.UintToUintMap allocations) internal _clientAllocationsPerSP;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -30,17 +41,93 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @param params The parameters for the transfer
      * @dev Reverts with InsufficientAllowance if caller doesn't have sufficient allowance
      * @dev Reverts with InvalidAmount when parsing amount from BigInt to uint256 failed
+     * @dev Reverts with UnfairDistribution when trying to give too much to single SP
      */
     function transfer(DataCapTypes.TransferParams calldata params) external {
         (uint256 parsedAmount, bool failed) = BigInts.toUint256(params.amount);
         if (failed) revert Errors.InvalidAmount();
         if (allowances[msg.sender] < parsedAmount) revert Errors.InsufficientAllowance();
-        uint64[] memory providers = _deserializeAllocationRequests(params.operator_data);
+        (uint64[] memory providers, uint256[] memory sizes) = _deserializeAllocationRequests(params.operator_data);
         _ensureSPsAreAllowed(providers);
+
+        uint256 totalSize = 0;
+        for (uint256 i = 0; i < sizes.length; i++) {
+            totalSize += sizes[i];
+        }
+
+        for (uint256 i = 0; i < providers.length; i++) {
+            uint64 provider = providers[i];
+            uint256 size = sizes[i] * parsedAmount / totalSize;
+            if (_clientAllocationsPerSP[msg.sender].contains(provider)) {
+                size += _clientAllocationsPerSP[msg.sender].get(provider);
+            }
+            // slither-disable-next-line unused-return
+            _clientAllocationsPerSP[msg.sender].set(provider, size);
+            _ensureMaxDeviationIsNotExceeded(size);
+        }
+
         allowances[msg.sender] -= parsedAmount;
+        emit DatacapAllocated(msg.sender, params.to, params.amount);
+        // slither-disable-start unused-return
         /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         DataCapAPI.transfer(params);
-        emit DatacapAllocated(msg.sender, params.to, params.amount);
+        // slither-disable-end unused-return
+    }
+
+    /**
+     * @dev Check if a single SP can get `size` total datacap from a client.
+     * @dev Reverts with UnfairDistribution if size is too big
+     * @param size Total allocations for a single SP
+     */
+    function _ensureMaxDeviationIsNotExceeded(uint256 size) internal view {
+        uint256 maxSlack = clientConfigs[msg.sender];
+        uint256 total = totalAllocations[msg.sender];
+        uint256 providersCount = _clientSPs[msg.sender].length();
+        uint256 fairMax = total / providersCount;
+        uint256 max = fairMax + total * maxSlack / DENOMINATOR;
+
+        if (size > max) revert Errors.UnfairDistribution(max, size);
+    }
+
+    /**
+     * @notice Get a set of SPs allowed for given client.
+     * @param client The address of the client.
+     * @return providers List of allowed providers.
+     */
+    function clientSPs(address client) external view returns (uint256[] memory providers) {
+        providers = _clientSPs[client].values();
+    }
+
+    /**
+     * @notice Get a sum of client allocations per SP.
+     * @param client The address of the client.
+     * @return providers List of providers for a specific client.
+     * @return allocations The sum of the client allocations per SP.
+     */
+    function clientAllocationsPerSP(address client)
+        external
+        view
+        returns (uint256[] memory providers, uint256[] memory allocations)
+    {
+        providers = _clientAllocationsPerSP[client].keys();
+        allocations = new uint256[](providers.length);
+
+        for (uint256 i = 0; i < providers.length; i++) {
+            allocations[i] = _clientAllocationsPerSP[client].get(providers[i]);
+        }
+    }
+
+    /**
+     * @notice This function sets the maximum allowed deviation from a fair
+     * distribution of data between storage providers.
+     * @dev This function can only be called by the owner
+     * @param client The address of the client
+     * @param maxDeviation Max allowed deviation. 0 = no slack, DENOMINATOR = 100% (based on total allocations of user)
+     * @dev Emits ClientConfigChanged event
+     */
+    function setClientMaxDeviationFromFairDistribution(address client, uint256 maxDeviation) external onlyOwner {
+        clientConfigs[client] = maxDeviation;
+        emit ClientConfigChanged(client, maxDeviation);
     }
 
     /**
@@ -51,7 +138,8 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      */
     function addAllowedSPsForClient(address client, uint64[] calldata allowedSPs_) external onlyOwner {
         for (uint256 i = 0; i < allowedSPs_.length; i++) {
-            clientSPs[client][allowedSPs_[i]] = true;
+            // slither-disable-next-line unused-return
+            _clientSPs[client].add(allowedSPs_[i]);
         }
         emit SPsAddedForClient(client, allowedSPs_);
     }
@@ -64,7 +152,8 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      */
     function removeAllowedSPsForClient(address client, uint64[] calldata disallowedSPs_) external onlyOwner {
         for (uint256 i = 0; i < disallowedSPs_.length; i++) {
-            clientSPs[client][disallowedSPs_[i]] = false;
+            // slither-disable-next-line unused-return
+            _clientSPs[client].remove(disallowedSPs_[i]);
         }
         emit SPsRemovedForClient(client, disallowedSPs_);
     }
@@ -74,10 +163,15 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @param cborData The cbor encoded operator data
      * @dev byteIdx The index of the byte to start reading from
      */
-    function _deserializeAllocationRequests(bytes memory cborData) internal pure returns (uint64[] memory providers) {
+    function _deserializeAllocationRequests(bytes memory cborData)
+        internal
+        pure
+        returns (uint64[] memory providers, uint256[] memory sizes)
+    {
         uint256 operatorDataLength;
         uint256 allocationRequestsLength;
         uint64 provider;
+        uint64 size;
         uint256 byteIdx = 0;
 
         (operatorDataLength, byteIdx) = CBORDecoder.readFixedArray(cborData, byteIdx);
@@ -86,8 +180,9 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         (allocationRequestsLength, byteIdx) = CBORDecoder.readFixedArray(cborData, byteIdx);
 
         providers = new uint64[](allocationRequestsLength);
+        sizes = new uint256[](allocationRequestsLength);
 
-        for (uint256 i = 0; i < operatorDataLength; i++) {
+        for (uint256 i = 0; i < allocationRequestsLength; i++) {
             uint256 allocationRequestLength;
             (allocationRequestLength, byteIdx) = CBORDecoder.readFixedArray(cborData, byteIdx);
 
@@ -96,13 +191,16 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
             }
 
             (provider, byteIdx) = CBORDecoder.readUInt64(cborData, byteIdx);
-            providers[i] = provider;
+            // slither-disable-start unused-return
+            (, byteIdx) = CBORDecoder.readBytes(cborData, byteIdx); // data (CID)
+            (size, byteIdx) = CBORDecoder.readUInt64(cborData, byteIdx);
+            (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx); // termMin
+            (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx); // termMax
+            (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx); // expiration
+            // slither-disable-end unused-return
 
-            (, byteIdx) = CBORDecoder.readBytes(cborData, byteIdx);
-            (, byteIdx) = CBORDecoder.readUInt64(cborData, byteIdx);
-            (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx);
-            (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx);
-            (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx);
+            providers[i] = provider;
+            sizes[i] = size;
         }
     }
 
@@ -113,7 +211,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      */
     function _ensureSPsAreAllowed(uint64[] memory providers) internal view {
         for (uint256 i = 0; i < providers.length; i++) {
-            if (!clientSPs[msg.sender][providers[i]]) {
+            if (!_clientSPs[msg.sender].contains(providers[i])) {
                 revert Errors.NotAllowedSP();
             }
         }
@@ -131,6 +229,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         if (amount == 0) revert Errors.AmountEqualZero();
         uint256 allowanceBefore = allowances[client];
         allowances[client] += amount;
+        totalAllocations[client] += amount;
         emit AllowanceChanged(client, allowanceBefore, allowances[client]);
     }
 
@@ -152,9 +251,14 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
             amount = allowanceBefore;
         }
         allowances[client] -= amount;
+        totalAllocations[client] -= amount; // FIXME document that this has potentially affected slack
         emit AllowanceChanged(client, allowanceBefore, allowances[client]);
     }
 
+    /**
+     * @notice Disable the renounceOwnership function which leaves the contract without an owner.
+     * @dev Reverts if trying to call
+     */
     function renounceOwnership() public view override onlyOwner {
         revert Errors.FunctionDisabled();
     }

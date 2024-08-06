@@ -31,14 +31,18 @@ library Errors {
     error InvalidAllocationRequest();
 
     /// @dev Error thrown when amount is invalid
-    /// 0x2c5211c6
+    // 0x2c5211c6
     error InvalidAmount();
 
     /// @dev Thrown if trying to call disabled function
-    /// 0xbf241488
+    // 0xbf241488
     error FunctionDisabled();
 
     /// @dev Thrown if trying to decrease allowance when it's already 0
-    /// 0x5657d5eb
+    // 0x5657d5eb
     error AlreadyZero();
+
+    /// @dev Thrown if trying to give too much datacap to single SP
+    // 0xa69a2fd5
+    error UnfairDistribution(uint256 maxPerSp, uint256 providedToSingleSp);
 }
