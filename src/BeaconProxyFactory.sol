@@ -14,7 +14,7 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
  */
 contract BeaconProxyFactory is IBeaconProxyFactory {
     // slither-disable-next-line naming-convention
-    UpgradeableBeacon public immutable BEACON; // Calls the address of GreeterBeacon
+    UpgradeableBeacon public immutable BEACON;
 
     /**
      * @notice Mapping from manager address to amount of deploys
