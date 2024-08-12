@@ -4,6 +4,10 @@ pragma solidity 0.8.25;
 import {DataCapTypes} from "filecoin-solidity/contracts/v0.8/types/DataCapTypes.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
 
+/**
+ * @title Interface for Client contract
+ * @notice Definition of core functions and events of the Client contract
+ */
 interface IClient {
     /**
      * @notice Emitted when the list of allowed storage providers is changed.
@@ -63,16 +67,16 @@ interface IClient {
      * @notice This function removes storage providers from the allowed list for a specific client.
      * @dev This function can only be called by the owner.
      * @param client The address of the client for whom the allowed storage providers are being removed
-     * @param allowedSPs_ The list of storage providers to remove.
+     * @param disallowedSPs_ The list of storage providers to remove.
      */
-    function removeAllowedSPsForClient(address client, uint64[] calldata allowedSPs_) external;
+    function removeAllowedSPsForClient(address client, uint64[] calldata disallowedSPs_) external;
 
     /**
-     * @notice Returns the current client address.
+     * @notice Returns the current client allowance.
      * @param client The address of the client.
-     * @return The allowance of the client.
+     * @return allowance The allowance of the client.
      */
-    function allowances(address client) external view returns (uint256);
+    function allowances(address client) external view returns (uint256 allowance);
 
     /**
      * @notice Get a set of SPs allowed for given client.
