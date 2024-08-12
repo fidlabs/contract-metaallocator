@@ -104,12 +104,12 @@ Function to add allowance to the client. Invoked only by the notary.
   - `clientAddress`: Address of the client to add allowance for.
   - `amount`: The amount of allowance to add.
 
-`getAllocators() external view returns (address[] memory)`
+`getAllocators() external view returns (address[] memory allocators)`
 
 Function to return all active notaries.
 
 - **Returns:**
-  - `address[] memory`: Array of addresses representing all active notaries.
+  - `allocators`: Array of addresses representing all active notaries.
 
 ## Factory.sol
 
@@ -125,7 +125,7 @@ Constructor to initialize the `Factory` contract.
   - `initialOwner`: Address of the initial owner of the contract.
   - `implementation_`: Address of the implementation contract.
 
-## Functions
+### Functions
 
 `getContracts() external view returns (address[] memory)`
 
@@ -147,6 +147,127 @@ Function to set the implementation contract address.
 
 - **Parameters:**
   - `implementation_`: Address of the new implementation contract.
+
+## Client.sol
+
+The Client contract facilitates the management of DataCap allocations. It enables the allocator to set and modify client allowances, manage lists of authorized storage providers for each client, and define distribution constraints to ensure fair allocation. Clients can transfer their allocated DataCap to permitted storage providers, adhering to the configured allowances and distribution rules.
+
+### Functions
+
+`transfer(DataCapTypes.TransferParams calldata params) external`
+
+Transfers DataCap tokens from the client to the storage provider. This function can only be called by the client.
+
+- **Parameters**:
+  - `params`: The parameters for the transfer.
+
+`addAllowedSPsForClient(address client, uint64[] calldata allowedSPs_) external onlyOwner`
+
+Adds storage providers to the allowed list for a specific client. Can only be called by the owner.
+
+- **Parameters**:
+  - `client`: The address of the client.
+  - `allowedSPs_`: The list of storage providers to add.
+
+`removeAllowedSPsForClient(address client, uint64[] calldata disallowedSPs_) external onlyOwner`
+
+Removes storage providers from the allowed list for a specific client. Can only be called by the owner.
+
+- **Parameters**:
+  - `client`: The address of the client.
+  - `disallowedSPs_`: The list of storage providers to remove.
+
+`allowances(address client) external view returns (uint256 allowance)`
+
+Returns the current allowance of the specified client.
+
+- **Parameters**:
+  - `client`: The address of the client.
+- **Returns**:
+  - `allowance`: The allowance of the client.
+
+`clientSPs(address client) external view returns (uint256[] memory providers)`
+
+Retrieves the list of storage providers allowed for the specified client.
+
+- **Parameters**:
+  - `client`: The address of the client.
+- **Returns**:
+  - `providers`: List of allowed storage providers.
+
+`clientConfigs(address client) external view returns (uint256 maxDeviationFromFairDistribution)`
+
+Returns the maximum allowed deviation from fair distribution for a specific client.
+
+- **Parameters**:
+  - `client`: The address of the client.
+- **Returns**:
+  - `maxDeviationFromFairDistribution`: Maximum deviation from fair distribution.
+
+`totalAllocations(address client) external view returns (uint256 allocations)`
+
+Retrieves the total sum of allocations for the specified client.
+
+- **Parameters**:
+  - `client`: The address of the client.
+- **Returns**:
+  - `allocations`: The total allocations of the client.
+
+`clientAllocationsPerSP(address client) external view returns (uint256[] memory providers, uint256[] memory allocations)`
+
+Retrieves the total allocations per storage provider for the specified client.
+
+- **Parameters**:
+  - `client`: The address of the client.
+- **Returns**:
+  - `providers`: List of storage providers.
+  - `allocations`: Allocations per storage provider.
+
+`setClientMaxDeviationFromFairDistribution(address client, uint256 maxDeviation) external onlyOwner`
+
+Sets the maximum allowed deviation from a fair distribution of data between storage providers for a specific client. Can only be called by the owner.
+
+- **Parameters**:
+  - `client`: The address of the client.
+  - `maxDeviation`: Maximum allowed deviation. `0` indicates no slack, and `DENOMINATOR` represents 100% (based on total allocations of the user).
+
+`increaseAllowance(address client, uint256 amount) external onlyOwner`
+
+Increases the allowance for a client. Can only be called by the owner.
+
+- **Parameters**:
+  - `client`: The client that will receive allowance.
+  - `amount`: The amount to increase the allowance by.
+
+`decreaseAllowance(address client, uint256 amount) external onlyOwner`
+
+Decreases the allowance for a client. Can only be called by the owner.
+
+- **Parameters**:
+  - `client`: The client whose allowance is to be decreased.
+  - `amount`: The amount to decrease the allowance by.
+
+## BeaconProxyFactory.sol
+
+Factory for deploying new instances of Client Contract. Factory owner can update the implementation used for deploying new instances.
+
+### Constructor
+
+`constructor(address logic_)`
+
+Constructor to initialize the `BeaconProxyFactory` contract.
+
+- **Parameters:**
+  - `logic_`: Address of the implementation contract.
+
+### Functions
+
+`create(address manager_) external`
+
+Creates a new instance of an upgradeable contract.
+
+- **Parameters:**
+  - `manager_`: Address of the contract manager.
 
 ### [ABIs](https://github.com/fidlabs/contract-metaallocator/tree/main/abis)
 

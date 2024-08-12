@@ -9,7 +9,7 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 /**
  * @title BeaconProxy Factory
- * @notice Factory for deploying new instances of Allocation Contract. Factory
+ * @notice Factory for deploying new instances of Client Contract. Factory
  * owner can update the implementation used for deploying new instances.
  */
 contract BeaconProxyFactory is IBeaconProxyFactory {

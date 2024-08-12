@@ -13,6 +13,15 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
+/**
+ * @title Client
+ * @notice The Client contract facilitates the management of DataCap allocations.
+ * It enables the allocator to set and modify client allowances, manage
+ * lists of authorized storage providers for each client, and define distribution
+ * constraints to ensure fair allocation. Clients can transfer their allocated
+ * DataCap to permitted storage providers, adhering to the configured allowances
+ * and distribution rules.
+ */
 contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpgradeable {
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableMap for EnumerableMap.UintToUintMap;

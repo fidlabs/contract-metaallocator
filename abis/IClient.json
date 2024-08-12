@@ -29,7 +29,7 @@
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "allowance",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -144,7 +144,7 @@
         "internalType": "address"
       },
       {
-        "name": "allowedSPs_",
+        "name": "disallowedSPs_",
         "type": "uint64[]",
         "internalType": "uint64[]"
       }
