@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.25;
 
-import {DataCapTypes} from "filecoin-solidity/contracts/v0.8/types/DataCapTypes.sol";
-import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
+import {DataCapTypes} from "filecoin-project-filecoin-solidity/v0.8/types/DataCapTypes.sol";
+import {CommonTypes} from "filecoin-project-filecoin-solidity/v0.8/types/CommonTypes.sol";
 
 /**
  * @title Interface for Client contract
@@ -33,11 +33,11 @@ interface IClient {
 
     /**
      * @notice Emitted when DataCap is allocated to a client.
-     * @param allocator The address of the allocator.
-     * @param client The Filecoin address of the client.
+     * @param client The address of the client.
+     * @param to The Filecoin address of the receiver.
      * @param amount The amount of DataCap allocated.
      */
-    event DatacapAllocated(address indexed allocator, CommonTypes.FilAddress indexed client, CommonTypes.BigInt amount);
+    event DatacapAllocated(address indexed client, CommonTypes.FilAddress indexed to, uint256 amount);
 
     /**
      * @notice Emitted when client config is changed by manager.
@@ -140,4 +140,24 @@ interface IClient {
      * @dev Reverts if client allowance is already 0
      */
     function decreaseAllowance(address client, uint256 amount) external;
+
+    /**
+     * @notice The handle_filecoin_method function is a universal entry point for calls
+     * coming from built-in Filecoin actors. Datacap is an FRC-46 Token. Receiving FRC46
+     * tokens requires implementing a Receiver Hook:
+     * https://github.com/filecoin-project/FIPs/blob/master/FRCs/frc-0046.md#receiver-hook.
+     * We use handle_filecoin_method to handle the receiver hook and make sure that the token
+     * sent to our contract is freshly minted Datacap and reject all other calls and transfers.
+     * @param method Method number
+     * @param inputCodec Codec of the payload
+     * @param params Params of the call
+     * @dev Reverts if caller is not a verifreg
+     * @dev Reverts if trying to send a unsupported token type
+     * @dev Reverts if trying to receive invalid token
+     * @dev Reverts if trying to send a unsupported token
+     */
+    function handle_filecoin_method(uint64 method, uint64 inputCodec, bytes calldata params)
+        external
+        view
+        returns (uint32 exitCode, uint64 codec, bytes memory data);
 }

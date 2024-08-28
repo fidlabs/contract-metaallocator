@@ -19,6 +19,19 @@
   },
   {
     "type": "function",
+    "name": "TOKEN_PRECISION",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "acceptOwnership",
     "inputs": [],
     "outputs": [],
@@ -140,6 +153,45 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "handle_filecoin_method",
+    "inputs": [
+      {
+        "name": "method",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "inputCodec",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "params",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "exitCode",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "codec",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -390,13 +442,13 @@
     "name": "DatacapAllocated",
     "inputs": [
       {
-        "name": "allocator",
+        "name": "client",
         "type": "address",
         "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "client",
+        "name": "to",
         "type": "tuple",
         "indexed": true,
         "internalType": "struct CommonTypes.FilAddress",
@@ -410,21 +462,9 @@
       },
       {
         "name": "amount",
-        "type": "tuple",
+        "type": "uint256",
         "indexed": false,
-        "internalType": "struct CommonTypes.BigInt",
-        "components": [
-          {
-            "name": "val",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "neg",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -520,17 +560,6 @@
   },
   {
     "type": "error",
-    "name": "ActorError",
-    "inputs": [
-      {
-        "name": "errorCode",
-        "type": "int256",
-        "internalType": "int256"
-      }
-    ]
-  },
-  {
-    "type": "error",
     "name": "ActorNotFound",
     "inputs": []
   },
@@ -598,6 +627,33 @@
   },
   {
     "type": "error",
+    "name": "InvalidCaller",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "expectedCaller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidCodec",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "InvalidCodec",
     "inputs": [
       {
@@ -621,6 +677,22 @@
     "type": "error",
     "name": "InvalidResponseLength",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTokenReceived",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MethodNotHandled",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
   },
   {
     "type": "error",
@@ -690,5 +762,15 @@
         "internalType": "uint256"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedToken",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedType",
+    "inputs": []
   }
 ]

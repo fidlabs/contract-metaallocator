@@ -118,6 +118,45 @@
   },
   {
     "type": "function",
+    "name": "handle_filecoin_method",
+    "inputs": [
+      {
+        "name": "method",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "inputCodec",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "params",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "exitCode",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "codec",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "increaseAllowance",
     "inputs": [
       {
@@ -287,13 +326,13 @@
     "name": "DatacapAllocated",
     "inputs": [
       {
-        "name": "allocator",
+        "name": "client",
         "type": "address",
         "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "client",
+        "name": "to",
         "type": "tuple",
         "indexed": true,
         "internalType": "struct CommonTypes.FilAddress",
@@ -307,21 +346,9 @@
       },
       {
         "name": "amount",
-        "type": "tuple",
+        "type": "uint256",
         "indexed": false,
-        "internalType": "struct CommonTypes.BigInt",
-        "components": [
-          {
-            "name": "val",
-            "type": "bytes",
-            "internalType": "bytes"
-          },
-          {
-            "name": "neg",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
