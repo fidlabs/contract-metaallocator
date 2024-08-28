@@ -32,7 +32,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
     uint32 constant _FRC46_TOKEN_TYPE = 2233613279; // method_hash!("FRC46") as u32;
     uint256 public constant TOKEN_PRECISION = 1e18;
     uint256 public constant DENOMINATOR = 10000;
-    address constant _VERIFREG_ADDRESS = address(0xfF00000000000000000000000000000000000007);
+    address constant _DATACAP_ADDRESS = address(0xfF00000000000000000000000000000000000007);
     mapping(address client => uint256 allowance) public allowances;
     mapping(address client => EnumerableSet.UintSet allowedSPs) internal _clientSPs;
 
@@ -76,7 +76,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         }
 
         allowances[msg.sender] -= datacapAmount;
-        emit DatacapAllocated(msg.sender, params.to, datacapAmount);
+        emit DatacapSpent(msg.sender, datacapAmount);
         // slither-disable-start unused-return
         /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         DataCapAPI.transfer(params);
@@ -282,7 +282,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @param method Method number
      * @param inputCodec Codec of the payload
      * @param params Params of the call
-     * @dev Reverts if caller is not a verifreg
+     * @dev Reverts if caller is not a datacap contract
      * @dev Reverts if trying to send a unsupported token type
      * @dev Reverts if trying to receive invalid token
      * @dev Reverts if trying to send a unsupported token
@@ -293,7 +293,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         view
         returns (uint32 exitCode, uint64 codec, bytes memory data)
     {
-        if (msg.sender != _VERIFREG_ADDRESS) revert Errors.InvalidCaller(msg.sender, _VERIFREG_ADDRESS);
+        if (msg.sender != _DATACAP_ADDRESS) revert Errors.InvalidCaller(msg.sender, _DATACAP_ADDRESS);
         CommonTypes.UniversalReceiverParams memory receiverParams =
             UtilsHandlers.handleFilecoinMethod(method, inputCodec, params);
         if (receiverParams.type_ != _FRC46_TOKEN_TYPE) revert Errors.UnsupportedType();

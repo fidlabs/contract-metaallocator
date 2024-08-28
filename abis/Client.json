@@ -439,26 +439,13 @@
   },
   {
     "type": "event",
-    "name": "DatacapAllocated",
+    "name": "DatacapSpent",
     "inputs": [
       {
         "name": "client",
         "type": "address",
         "indexed": true,
         "internalType": "address"
-      },
-      {
-        "name": "to",
-        "type": "tuple",
-        "indexed": true,
-        "internalType": "struct CommonTypes.FilAddress",
-        "components": [
-          {
-            "name": "data",
-            "type": "bytes",
-            "internalType": "bytes"
-          }
-        ]
       },
       {
         "name": "amount",

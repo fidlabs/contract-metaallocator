@@ -34,10 +34,9 @@ interface IClient {
     /**
      * @notice Emitted when DataCap is allocated to a client.
      * @param client The address of the client.
-     * @param to The Filecoin address of the receiver.
      * @param amount The amount of DataCap allocated.
      */
-    event DatacapAllocated(address indexed client, CommonTypes.FilAddress indexed to, uint256 amount);
+    event DatacapSpent(address indexed client, uint256 amount);
 
     /**
      * @notice Emitted when client config is changed by manager.
@@ -156,6 +155,7 @@ interface IClient {
      * @dev Reverts if trying to receive invalid token
      * @dev Reverts if trying to send a unsupported token
      */
+    // solhint-disable func-name-mixedcase
     function handle_filecoin_method(uint64 method, uint64 inputCodec, bytes calldata params)
         external
         view

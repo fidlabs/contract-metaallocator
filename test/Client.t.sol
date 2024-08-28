@@ -27,7 +27,7 @@ contract ClientTest is Test {
     address public manager = vm.addr(2);
     address public client_ = vm.addr(3);
     address public manager_ = vm.addr(4);
-    address public verifreg = address(0xfF00000000000000000000000000000000000007);
+    address public datacapContract = address(0xfF00000000000000000000000000000000000007);
     uint64[] public allowedSPs_ = new uint64[](0);
     bytes public transferTo = abi.encodePacked(vm.addr(6));
     UpgradeableBeacon public beacon;
@@ -200,7 +200,7 @@ contract ClientTest is Test {
         uint256 datacapAmount = tokenAmount / clientContract.TOKEN_PRECISION();
         vm.prank(client);
         vm.expectEmit(true, true, false, true);
-        emit IClient.DatacapAllocated(client, transferParams.to, datacapAmount);
+        emit IClient.DatacapSpent(client, datacapAmount);
         clientContract.transfer(transferParams);
     }
 
@@ -737,7 +737,7 @@ contract ClientTest is Test {
     function testHandleFilecoinMethod() public {
         bytes memory params =
             hex"821A85223BDF58598607061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040";
-        vm.prank(verifreg);
+        vm.prank(datacapContract);
         (uint32 exitCode, uint64 codec, bytes memory data) =
             clientContract.handle_filecoin_method(3726118371, 0x51, params);
         assertEq(exitCode, 0);
@@ -748,7 +748,7 @@ contract ClientTest is Test {
     function testHandleFilecoinMethodExpectRevertUnsupportedType() public {
         bytes memory params =
             hex"821A85223BDE585B861903F3061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040";
-        vm.prank(verifreg);
+        vm.prank(datacapContract);
         vm.expectRevert(abi.encodeWithSelector(Errors.UnsupportedType.selector));
         clientContract.handle_filecoin_method(3726118371, 81, params);
     }
@@ -756,7 +756,7 @@ contract ClientTest is Test {
     function testHandleFilecoinMethodExpectRevertInvalidTokenReceived() public {
         bytes memory params =
             hex"821A85223BDF585D871903F3061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040187B";
-        vm.prank(verifreg);
+        vm.prank(datacapContract);
         vm.expectRevert(abi.encodeWithSelector(Errors.InvalidTokenReceived.selector));
         clientContract.handle_filecoin_method(3726118371, 81, params);
     }
@@ -764,7 +764,7 @@ contract ClientTest is Test {
     function testHandleFilecoinMethodExpectRevertUnsupportedToken() public {
         bytes memory params =
             hex"821a85223bdf585b861903f3061903f34a006f05b59d3b2000000058458281861903e8d82a5828000181e2039220207dcae81b2a679a3955cc2e4b3504c23ce55b2db5dd2119841ecafa550e53900e1908001a0007e9001a005033401a0002d3028040";
-        vm.prank(verifreg);
+        vm.prank(datacapContract);
         vm.expectRevert(abi.encodeWithSelector(Errors.UnsupportedToken.selector));
         clientContract.handle_filecoin_method(3726118371, 81, params);
     }
@@ -772,7 +772,7 @@ contract ClientTest is Test {
     function testHandleFilecoinMethodExpectRevertInvalidCaller() public {
         bytes memory params =
             hex"821a85223bdf585b861903f3061903f34a006f05b59d3b2000000058458281861903e8d82a5828000181e2039220207dcae81b2a679a3955cc2e4b3504c23ce55b2db5dd2119841ecafa550e53900e1908001a0007e9001a005033401a0002d3028040";
-        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidCaller.selector, address(this), verifreg));
+        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidCaller.selector, address(this), datacapContract));
         clientContract.handle_filecoin_method(3726118371, 81, params);
     }
 }
