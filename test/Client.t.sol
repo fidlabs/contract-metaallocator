@@ -285,7 +285,7 @@ contract ClientTest is Test {
         vm.prank(manager);
         vm.expectEmit(true, false, false, true);
         emit IClient.AllowanceChanged(client, allowanceBefore, 0);
-        clientContract.decreaseAllowance(client, 4096);
+        clientContract.decreaseAllowance(client, 5000);
         assertEq(clientContract.allowances(client), 0);
     }
 
