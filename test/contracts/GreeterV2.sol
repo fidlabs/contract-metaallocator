@@ -15,7 +15,7 @@ contract GreeterV2 is Initializable {
     function initialize(string memory greeting_) public {
         greeting = greeting_;
     }
-    
+
     function hello() public view returns (string memory greeting_) {
         greeting_ = greeting;
     }
