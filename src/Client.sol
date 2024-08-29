@@ -13,7 +13,6 @@ import {BigInts} from "filecoin-project-filecoin-solidity/v0.8/utils/BigInts.sol
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-import {Misc} from "filecoin-project-filecoin-solidity/v0.8/utils/Misc.sol";
 import {UtilsHandlers} from "filecoin-project-filecoin-solidity/v0.8/utils/UtilsHandlers.sol";
 
 /**
@@ -29,10 +28,10 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableMap for EnumerableMap.UintToUintMap;
 
-    uint32 constant _FRC46_TOKEN_TYPE = 2233613279; // method_hash!("FRC46") as u32;
+    uint32 private constant _FRC46_TOKEN_TYPE = 2233613279; // method_hash!("FRC46") as u32;
+    address private constant _DATACAP_ADDRESS = address(0xfF00000000000000000000000000000000000007);
     uint256 public constant TOKEN_PRECISION = 1e18;
     uint256 public constant DENOMINATOR = 10000;
-    address constant _DATACAP_ADDRESS = address(0xfF00000000000000000000000000000000000007);
     mapping(address client => uint256 allowance) public allowances;
     mapping(address client => EnumerableSet.UintSet allowedSPs) internal _clientSPs;
 

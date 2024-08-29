@@ -2,7 +2,6 @@
 pragma solidity 0.8.25;
 
 import {DataCapTypes} from "filecoin-project-filecoin-solidity/v0.8/types/DataCapTypes.sol";
-import {CommonTypes} from "filecoin-project-filecoin-solidity/v0.8/types/CommonTypes.sol";
 
 /**
  * @title Interface for Client contract
