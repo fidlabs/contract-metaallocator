@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 import {IBeacon} from "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 import {Greeter} from "./contracts/Greeter.sol";
+import {GreeterV2} from "./contracts/GreeterV2.sol";
 import {BeaconProxyFactory} from "../src/BeaconProxyFactory.sol";
 import {Options} from "openzeppelin-foundry-upgrades/Options.sol";
 
@@ -26,7 +27,7 @@ contract UpgradesTest is Test {
 
         assertEq(instance.greeting(), "hello");
 
-        Upgrades.upgradeBeacon(beacon, "Greeter.sol", opts);
+        Upgrades.upgradeBeacon(beacon, "GreeterV2.sol", opts);
         address implAddressV2 = IBeacon(beacon).implementation();
 
         assertFalse(implAddressV2 == implAddressV1);
@@ -39,7 +40,7 @@ contract UpgradesTest is Test {
 
         address implAddressV1 = factory.BEACON().implementation();
 
-        address implementationV2 = address(new Greeter());
+        address implementationV2 = address(new GreeterV2());
 
         factory.BEACON().upgradeTo(implementationV2);
 
