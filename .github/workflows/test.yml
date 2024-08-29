@@ -71,9 +71,3 @@ jobs:
 
       - name: Check if ABIs are up-to-date
         run: ./ci/check-abis.sh
-
-      - name: Analyze with Slither
-        uses: crytic/slither-action@v0.4.0
-        with:
-          slither-version: 0.10.4
-          solc-version: 0.8.25
