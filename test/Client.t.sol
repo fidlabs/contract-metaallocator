@@ -6,11 +6,12 @@ import {Test} from "forge-std/Test.sol";
 import {Client} from "../src/Client.sol";
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {Errors} from "../src/libs/Errors.sol";
-import {DataCapTypes} from "filecoin-solidity/contracts/v0.8/types/DataCapTypes.sol";
-import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
+import {DataCapTypes} from "filecoin-project-filecoin-solidity/v0.8/types/DataCapTypes.sol";
+import {CommonTypes} from "filecoin-project-filecoin-solidity/v0.8/types/CommonTypes.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import {IClient} from "../src/interfaces/IClient.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {BigInts} from "filecoin-project-filecoin-solidity/v0.8/utils/BigInts.sol";
 
 contract VerifregActorMock {
     fallback(bytes calldata) external payable returns (bytes memory) {
@@ -26,6 +27,7 @@ contract ClientTest is Test {
     address public manager = vm.addr(2);
     address public client_ = vm.addr(3);
     address public manager_ = vm.addr(4);
+    address public datacapContract = address(0xfF00000000000000000000000000000000000007);
     uint64[] public allowedSPs_ = new uint64[](0);
     bytes public transferTo = abi.encodePacked(vm.addr(6));
     UpgradeableBeacon public beacon;
@@ -70,13 +72,13 @@ contract ClientTest is Test {
         /// Dummy transfer params
         transferParams = DataCapTypes.TransferParams({
             to: CommonTypes.FilAddress(transferTo),
-            amount: CommonTypes.BigInt({val: hex"64", neg: false}),
+            amount: CommonTypes.BigInt({val: hex"DE0B6B3A7640000000", neg: false}),
             //[[[1000, 42(h'000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA22'), 2048, 518400, 5256000, 305], [1000, 42(h'000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA22'), 2048, 518400, 5256000, 305]], []]
             operator_data: hex"8282861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A00503340190131861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180"
         });
 
         vm.startPrank(manager);
-        clientContract.increaseAllowance(client, 100);
+        clientContract.increaseAllowance(client, 4096);
         clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR());
         vm.stopPrank();
     }
@@ -194,9 +196,11 @@ contract ClientTest is Test {
     function testTransferEvent() public {
         vm.prank(manager);
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
+        (uint256 tokenAmount,) = BigInts.toUint256(transferParams.amount);
+        uint256 datacapAmount = tokenAmount / clientContract.TOKEN_PRECISION();
         vm.prank(client);
         vm.expectEmit(true, true, false, true);
-        emit IClient.DatacapAllocated(client, transferParams.to, transferParams.amount);
+        emit IClient.DatacapSpent(client, datacapAmount);
         clientContract.transfer(transferParams);
     }
 
@@ -270,7 +274,7 @@ contract ClientTest is Test {
 
     function testDecreaseAllowanceAlreadyZeroError() public {
         vm.prank(manager);
-        clientContract.decreaseAllowance(client, 100);
+        clientContract.decreaseAllowance(client, 4096);
         vm.prank(manager);
         vm.expectRevert(abi.encodeWithSelector(Errors.AlreadyZero.selector));
         clientContract.decreaseAllowance(client, 150);
@@ -281,7 +285,7 @@ contract ClientTest is Test {
         vm.prank(manager);
         vm.expectEmit(true, false, false, true);
         emit IClient.AllowanceChanged(client, allowanceBefore, 0);
-        clientContract.decreaseAllowance(client, 150);
+        clientContract.decreaseAllowance(client, 5000);
         assertEq(clientContract.allowances(client), 0);
     }
 
@@ -322,8 +326,6 @@ contract ClientTest is Test {
     function testTransferRevertInsufficientAllowance() public {
         vm.prank(manager);
         clientContract.decreaseAllowance(client, 50);
-
-        allowedSPs_.push(1200);
 
         vm.prank(manager);
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
@@ -372,25 +374,33 @@ contract ClientTest is Test {
         clientContract.setClientMaxDeviationFromFairDistribution(client, 0);
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
 
-        // client allowance is 100
-        // client has 2 SPs, so he can transfer max 50 each
+        // client allowance is 4096
+        // client has 2 SPs, so he can transfer max 2048 each
 
         vm.startPrank(client);
 
         // SP 1000
-        transferParams.amount.val = hex"34"; // == 52
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 50, 52));
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908011A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"6F139653EEC7640000"; // == 2049
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2048, 2049));
         clientContract.transfer(transferParams);
-        transferParams.amount.val = hex"30"; // == 48
+
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"6F05B59D3B20000000"; // == 2048
         clientContract.transfer(transferParams);
 
         // SP 1200
         transferParams.operator_data =
-            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A00503340190131861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"34"; // == 52
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 50, 52));
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908011A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"6F139653EEC7640000"; // == 2049
+        vm.expectRevert(abi.encodeWithSelector(Errors.InsufficientAllowance.selector));
         clientContract.transfer(transferParams);
-        transferParams.amount.val = hex"32"; // == 50
+
+        transferParams.operator_data =
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"6F05B59D3B20000000"; // == 2048
         clientContract.transfer(transferParams);
     }
 
@@ -401,17 +411,21 @@ contract ClientTest is Test {
         clientContract.setClientMaxDeviationFromFairDistribution(client, 0);
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
 
-        // client allowance is 100
-        // client has 2 SPs, so he can transfer max 50 each
+        // client allowance is 4096
+        // client has 2 SPs, so he can transfer max 2048 each
 
         vm.startPrank(client);
 
         // SP 1000
-        transferParams.amount.val = hex"30"; // == 48
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221907FE1A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"6EE9F42FD3D1380000"; // == 2046
         clientContract.transfer(transferParams);
 
-        transferParams.amount.val = hex"04"; // == 4
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 50, 52));
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA22041A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"3782DACE9D900000"; // == 4
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2048, 2050));
         clientContract.transfer(transferParams);
     }
 
@@ -422,21 +436,24 @@ contract ClientTest is Test {
         clientContract.setClientMaxDeviationFromFairDistribution(client, 0);
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
 
-        // client allowance is 100
-        // client has 2 SPs, so he can transfer max 50 each
+        // client allowance is 4096
+        // client has 2 SPs, so he can transfer max 2048 each
 
         vm.startPrank(client);
 
         // SP 1000
-        transferParams.amount.val = hex"02"; // == 2
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA22183A1A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"0324E964B3ECA80000"; // == 58
         clientContract.transfer(transferParams);
 
         // half to 1000, half to 1200
         transferParams.operator_data =
-            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A00503340190131861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
+            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221907E31A0007E9001A00503340190131861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221907E31A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"6F05B59D3B20000000"; // == 2048
 
-        transferParams.amount.val = hex"62"; // == 98, all remaining allowance, so 1000 will get 49, but already got 2 earlier
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 50, 51));
+        transferParams.amount.val = hex"DAE681D5C253580000"; // == 4038, all remaining allowance, so 1000 got 2019, but 1000 already got 58 earlier
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2048, 2077));
         clientContract.transfer(transferParams);
     }
 
@@ -447,23 +464,27 @@ contract ClientTest is Test {
         clientContract.setClientMaxDeviationFromFairDistribution(client, 0);
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
 
-        // client allowance is 100
-        // client has 2 SPs, so he can transfer max 50 each
+        // client allowance is 4096
+        // client has 2 SPs, so he can transfer max 2048 each
 
         vm.startPrank(client);
 
         // single allocation, all to 1200
         transferParams.operator_data =
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908011A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"6F139653EEC7640000"; // == 2049
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2048, 2049));
+        clientContract.transfer(transferParams);
+
+        transferParams.operator_data =
             hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"33"; // == 51
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 50, 51));
+        transferParams.amount.val = hex"6F05B59D3B20000000"; // == 2048
         clientContract.transfer(transferParams);
 
-        transferParams.amount.val = hex"32"; // == 50
-        clientContract.transfer(transferParams);
-
-        transferParams.amount.val = hex"01"; // == 1
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 50, 51));
+        transferParams.operator_data =
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA22011A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"0DE0B6B3A7640000"; // == 1
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2048, 2049));
         clientContract.transfer(transferParams);
     }
 
@@ -471,25 +492,31 @@ contract ClientTest is Test {
         allowedSPs_.push(1200);
         allowedSPs_.push(1000);
         vm.startPrank(manager);
-        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 10); // 10% slack, out of 100 allowance, so 10
+        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 10); // 10% slack, out of 4096 allowance, so 409
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
 
-        // client allowance is 100
-        // client has 2 SPs, so he can transfer max 50 + 10 slack each
+        // client allowance is 4096
+        // client has 2 SPs, so he can transfer max 2048 + 409 slack each
 
         vm.startPrank(client);
 
         // SP 1000
-        transferParams.amount.val = hex"3E"; // == 62
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 60, 62));
+
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221909C41A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"878678326EAC900000"; // == 2500
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2457, 2500));
         clientContract.transfer(transferParams);
-        transferParams.amount.val = hex"3A"; // == 58
+
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221909601A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"821AB0D44149800000"; // == 2400
         clientContract.transfer(transferParams);
 
         // SP 1200
         transferParams.operator_data =
-            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A00503340190131861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"2A"; // == 42
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221906A01A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"5BF0BA6634F6800000"; // == 1696
         clientContract.transfer(transferParams);
     }
 
@@ -497,20 +524,24 @@ contract ClientTest is Test {
         allowedSPs_.push(1200);
         allowedSPs_.push(1000);
         vm.startPrank(manager);
-        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 10); // 10% slack, out of 100 allowance, so 10
+        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 10); // 10% slack, out of 4096 allowance, so 409
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
 
-        // client allowance is 100
-        // client has 2 SPs, so he can transfer max 50 + 10 slack each
+        // client allowance is 4096
+        // client has 2 SPs, so he can transfer max 2048 + 409 slack each
 
         vm.startPrank(client);
 
         // SP 1000
-        transferParams.amount.val = hex"3A"; // == 58
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221909601A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"821AB0D44149800000"; // == 2400
         clientContract.transfer(transferParams);
 
-        transferParams.amount.val = hex"04"; // == 4
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 60, 62));
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA22183A1A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"0324E964B3ECA80000"; // == 58
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2457, 2458));
         clientContract.transfer(transferParams);
     }
 
@@ -518,24 +549,26 @@ contract ClientTest is Test {
         allowedSPs_.push(1200);
         allowedSPs_.push(1000);
         vm.startPrank(manager);
-        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 10); // 10% slack, out of 100 allowance, so 10
+        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 10); // 10% slack, out of 4096 allowance, so 409
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
 
-        // client allowance is 100
-        // client has 2 SPs, so he can transfer max 50 + 10 slack each
+        // client allowance is 4096
+        // client has 2 SPs, so he can transfer max 2048 + 409 slack each
 
         vm.startPrank(client);
 
         // SP 1000
-        transferParams.amount.val = hex"16"; // == 22
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221903E81A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"3635C9ADC5DEA00000"; // == 1000
         clientContract.transfer(transferParams);
 
         // half to 1000, half to 1200
         transferParams.operator_data =
-            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A00503340190131861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
+            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221905B21A0007E9001A00503340190131861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221905B21A0007E9001A0050334019013180";
 
-        transferParams.amount.val = hex"4E"; // == 78, all remaining allowance, so 1000 will get 39, but already got 22 earlier
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 60, 61));
+        transferParams.amount.val = hex"9E13A1165EAF100000"; // == 2916, all remaining allowance, so 1000 got 1458, but 1000 already got 1000 earlier
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2457, 2458));
         clientContract.transfer(transferParams);
     }
 
@@ -543,26 +576,30 @@ contract ClientTest is Test {
         allowedSPs_.push(1200);
         allowedSPs_.push(1000);
         vm.startPrank(manager);
-        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 10); // 10% slack, out of 100 allowance, so 10
+        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 10); // 10% slack, out of 4096 allowance, so 409
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
 
-        // client allowance is 100
-        // client has 2 SPs, so he can transfer max 50 + 10 slack each
+        // client allowance is 4096
+        // client has 2 SPs, so he can transfer max 2048 + 409 slack each
 
         vm.startPrank(client);
 
         // single allocation, all to 1200
         transferParams.operator_data =
-            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"3D"; // == 61
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 60, 61));
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA2219099A1A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"853F9A38F536280000"; // == 2458
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2457, 2458));
         clientContract.transfer(transferParams);
 
-        transferParams.amount.val = hex"3C"; // == 60
+        transferParams.operator_data =
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221909991A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"8531B982418EC40000"; // == 2457
         clientContract.transfer(transferParams);
 
-        transferParams.amount.val = hex"01"; // == 1
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 60, 61));
+        transferParams.operator_data =
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA22011A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"0DE0B6B3A7640000"; // == 1
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2457, 2458));
         clientContract.transfer(transferParams);
     }
 
@@ -570,21 +607,21 @@ contract ClientTest is Test {
         vm.startPrank(manager);
         allowedSPs_.push(1000);
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
-        assertEq(clientContract.totalAllocations(client), 100);
+        assertEq(clientContract.totalAllocations(client), 4096);
 
-        clientContract.decreaseAllowance(client, 50);
-        assertEq(clientContract.totalAllocations(client), 50);
+        clientContract.decreaseAllowance(client, 2048);
+        assertEq(clientContract.totalAllocations(client), 2048);
 
-        clientContract.increaseAllowance(client, 100);
-        assertEq(clientContract.totalAllocations(client), 150);
+        clientContract.increaseAllowance(client, 4096);
+        assertEq(clientContract.totalAllocations(client), 6144);
 
         vm.startPrank(client);
         clientContract.transfer(transferParams);
-        assertEq(clientContract.totalAllocations(client), 150);
+        assertEq(clientContract.totalAllocations(client), 6144);
 
         vm.startPrank(manager);
-        clientContract.decreaseAllowance(client, 50);
-        assertEq(clientContract.totalAllocations(client), 100);
+        clientContract.decreaseAllowance(client, 2048);
+        assertEq(clientContract.totalAllocations(client), 4096);
         assertEq(clientContract.allowances(client), 0);
     }
 
@@ -594,66 +631,41 @@ contract ClientTest is Test {
         allowedSPs_.push(1200);
         allowedSPs_.push(1400);
         clientContract.addAllowedSPsForClient(client, allowedSPs_);
-        clientContract.increaseAllowance(client, 50);
-        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 50); // 2% slack, out of 150 allowance, so 3
+        clientContract.increaseAllowance(client, 1904);
+        clientContract.setClientMaxDeviationFromFairDistribution(client, clientContract.DENOMINATOR() / 50); // 2% slack, out of 6000 allowance, so 120
 
-        // client allowance is 150
-        // client has 2 SPs, so he can transfer max 50 + 10 slack each
+        // client allowance is 6000
+        // client has 3 SPs, so he can transfer max 2000 + 120 slack each
 
         vm.startPrank(client);
 
         // single allocation, all to 1000
         transferParams.operator_data =
-            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"36"; // == 54
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 53, 54));
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908491A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"7CAEE97613E6700000"; // == 2121
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2120, 2121));
         clientContract.transfer(transferParams);
-        transferParams.amount.val = hex"35"; // == 53
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908341A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"71D75AB9B920500000"; // == 2120
         clientContract.transfer(transferParams);
 
         // single allocation, all to 1200
         transferParams.operator_data =
-            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"36"; // == 54
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 53, 54));
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908491A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"7CAEE97613E6700000"; // == 2121
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnfairDistribution.selector, 2120, 2121));
         clientContract.transfer(transferParams);
-        transferParams.amount.val = hex"35"; // == 53
+        transferParams.operator_data =
+            hex"8281861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908341A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"71D75AB9B920500000"; // == 2120
         clientContract.transfer(transferParams);
 
         // single allocation, all to 1400
         transferParams.operator_data =
-            hex"828186190578D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"2C"; // == 44
+            hex"828186190578D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221906E01A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"5F68E8131ECF800000"; // == 1760
         clientContract.transfer(transferParams);
-    }
-
-    function testClientAllocationsPerSpTrackedCorrectly() public {
-        vm.startPrank(manager);
-        allowedSPs_.push(1000);
-        clientContract.addAllowedSPsForClient(client, allowedSPs_);
-
-        vm.startPrank(client);
-
-        // single allocation, all to 1000
-        transferParams.operator_data =
-            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"35"; // == 53
-        clientContract.transfer(transferParams);
-
-        (uint256[] memory providers, uint256[] memory allocations) = clientContract.clientAllocationsPerSP(client);
-        assertEq(providers.length, 1);
-        assertEq(providers[0], 1000);
-        assertEq(allocations.length, 1);
-        assertEq(allocations[0], 53);
-
-        transferParams.amount.val = hex"0a"; // == 10
-        clientContract.transfer(transferParams);
-
-        (providers, allocations) = clientContract.clientAllocationsPerSP(client);
-        assertEq(providers.length, 1);
-        assertEq(providers[0], 1000);
-        assertEq(allocations.length, 1);
-        assertEq(allocations[0], 63);
     }
 
     function testClientAllocationsPerSpTrackedCorrectlySingleSPDoubleAlloc() public {
@@ -663,23 +675,28 @@ contract ClientTest is Test {
 
         vm.startPrank(client);
 
-        transferParams.amount.val = hex"34"; // == 52
+        // single allocation, all to 1000
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908FC1A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"7CAEE97613E6700000"; // == 2300
         clientContract.transfer(transferParams);
 
         (uint256[] memory providers, uint256[] memory allocations) = clientContract.clientAllocationsPerSP(client);
         assertEq(providers.length, 1);
         assertEq(providers[0], 1000);
         assertEq(allocations.length, 1);
-        assertEq(allocations[0], 52);
+        assertEq(allocations[0], 2300);
 
-        transferParams.amount.val = hex"0a"; // == 10
+        transferParams.operator_data =
+            hex"8281861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA22183A1A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"0324E964B3ECA80000"; // == 58
         clientContract.transfer(transferParams);
 
         (providers, allocations) = clientContract.clientAllocationsPerSP(client);
         assertEq(providers.length, 1);
         assertEq(providers[0], 1000);
         assertEq(allocations.length, 1);
-        assertEq(allocations[0], 62);
+        assertEq(allocations[0], 2358);
     }
 
     function testClientAllocationsPerSpTrackedCorrectlyTwosSPSingleTransfer() public {
@@ -691,8 +708,8 @@ contract ClientTest is Test {
         vm.startPrank(client);
 
         transferParams.operator_data =
-            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A00503340190131861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221908001A0007E9001A0050334019013180";
-        transferParams.amount.val = hex"32"; // == 50
+            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221904001A0007E9001A00503340190131861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221904001A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"6F05B59D3B20000000"; // == 2048
         clientContract.transfer(transferParams);
 
         (uint256[] memory providers, uint256[] memory allocations) = clientContract.clientAllocationsPerSP(client);
@@ -700,10 +717,12 @@ contract ClientTest is Test {
         assertEq(providers[0], 1200);
         assertEq(providers[1], 1000);
         assertEq(allocations.length, 2);
-        assertEq(allocations[0], 25);
-        assertEq(allocations[1], 25);
+        assertEq(allocations[0], 1024);
+        assertEq(allocations[1], 1024);
 
-        transferParams.amount.val = hex"0a"; // == 10
+        transferParams.operator_data =
+            hex"8282861904B0D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221902001A0007E9001A00503340190131861903E8D82A5828000181E203922020F2B9A58BBC9D9856E52EAB85155C1BA298F7E8DF458BD20A3AD767E11572CA221902001A0007E9001A0050334019013180";
+        transferParams.amount.val = hex"3782DACE9D90000000"; // == 1024
         clientContract.transfer(transferParams);
 
         (providers, allocations) = clientContract.clientAllocationsPerSP(client);
@@ -711,7 +730,49 @@ contract ClientTest is Test {
         assertEq(providers[0], 1200);
         assertEq(providers[1], 1000);
         assertEq(allocations.length, 2);
-        assertEq(allocations[0], 30);
-        assertEq(allocations[1], 30);
+        assertEq(allocations[0], 1536);
+        assertEq(allocations[1], 1536);
+    }
+
+    function testHandleFilecoinMethod() public {
+        bytes memory params =
+            hex"821A85223BDF58598607061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040";
+        vm.prank(datacapContract);
+        (uint32 exitCode, uint64 codec, bytes memory data) =
+            clientContract.handle_filecoin_method(3726118371, 0x51, params);
+        assertEq(exitCode, 0);
+        assertEq(codec, 0);
+        assertEq(data, "");
+    }
+
+    function testHandleFilecoinMethodExpectRevertUnsupportedType() public {
+        bytes memory params =
+            hex"821A85223BDE585B861903F3061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040";
+        vm.prank(datacapContract);
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnsupportedType.selector));
+        clientContract.handle_filecoin_method(3726118371, 81, params);
+    }
+
+    function testHandleFilecoinMethodExpectRevertInvalidTokenReceived() public {
+        bytes memory params =
+            hex"821A85223BDF585D871903F3061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040187B";
+        vm.prank(datacapContract);
+        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidTokenReceived.selector));
+        clientContract.handle_filecoin_method(3726118371, 81, params);
+    }
+
+    function testHandleFilecoinMethodExpectRevertUnsupportedToken() public {
+        bytes memory params =
+            hex"821a85223bdf585b861903f3061903f34a006f05b59d3b2000000058458281861903e8d82a5828000181e2039220207dcae81b2a679a3955cc2e4b3504c23ce55b2db5dd2119841ecafa550e53900e1908001a0007e9001a005033401a0002d3028040";
+        vm.prank(datacapContract);
+        vm.expectRevert(abi.encodeWithSelector(Errors.UnsupportedToken.selector));
+        clientContract.handle_filecoin_method(3726118371, 81, params);
+    }
+
+    function testHandleFilecoinMethodExpectRevertInvalidCaller() public {
+        bytes memory params =
+            hex"821a85223bdf585b861903f3061903f34a006f05b59d3b2000000058458281861903e8d82a5828000181e2039220207dcae81b2a679a3955cc2e4b3504c23ce55b2db5dd2119841ecafa550e53900e1908001a0007e9001a005033401a0002d3028040";
+        vm.expectRevert(abi.encodeWithSelector(Errors.InvalidCaller.selector, address(this), datacapContract));
+        clientContract.handle_filecoin_method(3726118371, 81, params);
     }
 }

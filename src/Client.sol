@@ -2,16 +2,18 @@
 pragma solidity 0.8.25;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {DataCapTypes} from "filecoin-solidity/contracts/v0.8/types/DataCapTypes.sol";
-import {DataCapAPI} from "filecoin-solidity/contracts/v0.8/DataCapAPI.sol";
+import {DataCapTypes} from "filecoin-project-filecoin-solidity/v0.8/types/DataCapTypes.sol";
+import {CommonTypes} from "filecoin-project-filecoin-solidity/v0.8/types/CommonTypes.sol";
+import {DataCapAPI} from "filecoin-project-filecoin-solidity/v0.8/DataCapAPI.sol";
 import {Errors} from "./libs/Errors.sol";
-import {CBORDecoder} from "filecoin-solidity/contracts/v0.8/utils/CborDecode.sol";
+import {CBORDecoder} from "filecoin-project-filecoin-solidity/v0.8/utils/CborDecode.sol";
 import {IClient} from "./interfaces/IClient.sol";
 import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
-import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
+import {BigInts} from "filecoin-project-filecoin-solidity/v0.8/utils/BigInts.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {UtilsHandlers} from "filecoin-project-filecoin-solidity/v0.8/utils/UtilsHandlers.sol";
 
 /**
  * @title Client
@@ -26,8 +28,10 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableMap for EnumerableMap.UintToUintMap;
 
+    uint32 private constant _FRC46_TOKEN_TYPE = 2233613279; // method_hash!("FRC46") as u32;
+    address private constant _DATACAP_ADDRESS = address(0xfF00000000000000000000000000000000000007);
+    uint256 public constant TOKEN_PRECISION = 1e18;
     uint256 public constant DENOMINATOR = 10000;
-
     mapping(address client => uint256 allowance) public allowances;
     mapping(address client => EnumerableSet.UintSet allowedSPs) internal _clientSPs;
 
@@ -53,20 +57,15 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @dev Reverts with UnfairDistribution when trying to give too much to single SP
      */
     function transfer(DataCapTypes.TransferParams calldata params) external {
-        (uint256 parsedAmount, bool failed) = BigInts.toUint256(params.amount);
+        (uint256 tokenAmount, bool failed) = BigInts.toUint256(params.amount);
         if (failed) revert Errors.InvalidAmount();
-        if (allowances[msg.sender] < parsedAmount) revert Errors.InsufficientAllowance();
+        uint256 datacapAmount = tokenAmount / TOKEN_PRECISION;
+        if (allowances[msg.sender] < datacapAmount) revert Errors.InsufficientAllowance();
         (uint64[] memory providers, uint256[] memory sizes) = _deserializeAllocationRequests(params.operator_data);
         _ensureSPsAreAllowed(providers);
-
-        uint256 totalSize = 0;
-        for (uint256 i = 0; i < sizes.length; i++) {
-            totalSize += sizes[i];
-        }
-
         for (uint256 i = 0; i < providers.length; i++) {
             uint64 provider = providers[i];
-            uint256 size = sizes[i] * parsedAmount / totalSize;
+            uint256 size = sizes[i];
             if (_clientAllocationsPerSP[msg.sender].contains(provider)) {
                 size += _clientAllocationsPerSP[msg.sender].get(provider);
             }
@@ -75,8 +74,8 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
             _ensureMaxDeviationIsNotExceeded(size);
         }
 
-        allowances[msg.sender] -= parsedAmount;
-        emit DatacapAllocated(msg.sender, params.to, params.amount);
+        allowances[msg.sender] -= datacapAmount;
+        emit DatacapSpent(msg.sender, datacapAmount);
         // slither-disable-start unused-return
         /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
         DataCapAPI.transfer(params);
@@ -270,5 +269,40 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      */
     function renounceOwnership() public view override onlyOwner {
         revert Errors.FunctionDisabled();
+    }
+
+    /**
+     * @notice The handle_filecoin_method function is a universal entry point for calls
+     * coming from built-in Filecoin actors. Datacap is an FRC-46 Token. Receiving FRC46
+     * tokens requires implementing a Receiver Hook:
+     * https://github.com/filecoin-project/FIPs/blob/master/FRCs/frc-0046.md#receiver-hook.
+     * We use handle_filecoin_method to handle the receiver hook and make sure that the token
+     * sent to our contract is freshly minted Datacap and reject all other calls and transfers.
+     * @param method Method number
+     * @param inputCodec Codec of the payload
+     * @param params Params of the call
+     * @dev Reverts if caller is not a datacap contract
+     * @dev Reverts if trying to send a unsupported token type
+     * @dev Reverts if trying to receive invalid token
+     * @dev Reverts if trying to send a unsupported token
+     */
+    // solhint-disable func-name-mixedcase
+    function handle_filecoin_method(uint64 method, uint64 inputCodec, bytes calldata params)
+        external
+        view
+        returns (uint32 exitCode, uint64 codec, bytes memory data)
+    {
+        if (msg.sender != _DATACAP_ADDRESS) revert Errors.InvalidCaller(msg.sender, _DATACAP_ADDRESS);
+        CommonTypes.UniversalReceiverParams memory receiverParams =
+            UtilsHandlers.handleFilecoinMethod(method, inputCodec, params);
+        if (receiverParams.type_ != _FRC46_TOKEN_TYPE) revert Errors.UnsupportedType();
+        (uint256 tokenReceivedLength, uint256 byteIdx) = CBORDecoder.readFixedArray(receiverParams.payload, 0);
+        if (tokenReceivedLength != 6) revert Errors.InvalidTokenReceived();
+        uint64 from;
+        (from, byteIdx) = CBORDecoder.readUInt64(receiverParams.payload, byteIdx); // payload == FRC46TokenReceived
+        if (from != CommonTypes.FilActorId.unwrap(DataCapTypes.ActorID)) revert Errors.UnsupportedToken();
+        exitCode = 0;
+        codec = 0;
+        data = "";
     }
 }

@@ -31,7 +31,28 @@
   },
   {
     "type": "error",
+    "name": "InvalidCaller",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "expectedCaller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "InvalidOperatorData",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTokenReceived",
     "inputs": []
   },
   {
@@ -64,5 +85,15 @@
         "internalType": "uint256"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedToken",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedType",
+    "inputs": []
   }
 ]

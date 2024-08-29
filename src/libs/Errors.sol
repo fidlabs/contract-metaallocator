@@ -45,4 +45,20 @@ library Errors {
     /// @dev Thrown if trying to give too much datacap to single SP
     // 0xa69a2fd5
     error UnfairDistribution(uint256 maxPerSp, uint256 providedToSingleSp);
+
+    /// @dev Thrown if trying to receive ussuported token type
+    // 0xc6de466a
+    error UnsupportedType();
+
+    /// @dev Thrown if trying to receive invalid token
+    // 0x6d5f86d5
+    error InvalidTokenReceived();
+
+    /// @dev Thrown if trying to receive unsupported token
+    // 0x6a172882
+    error UnsupportedToken();
+
+    /// @dev Thrown if caller is invalid
+    // 0x6a172882
+    error InvalidCaller(address caller, address expectedCaller);
 }
