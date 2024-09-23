@@ -76,7 +76,7 @@ contract AllocatorTest is Test {
     function testDatacapAllocatedEvent() public {
         allocator.addAllowance(vm.addr(1), 100);
         vm.prank(vm.addr(1));
-        vm.expectEmit();
+        vm.expectEmit(true, true, false, true);
         emit IAllocator.DatacapAllocated(vm.addr(1), "t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 50);
         allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 50);
     }

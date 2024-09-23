@@ -25,7 +25,7 @@ contract FactoryTest is Test {
 
     function testSetImplementationEmitEvent() public {
         address newImpl = address(new Allocator());
-        vm.expectEmit();
+        vm.expectEmit(false, false, false, true);
         emit IFactory.NewImplementationSet(newImpl);
         factory.setImplementation(newImpl);
     }
