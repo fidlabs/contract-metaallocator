@@ -231,5 +231,4 @@ contract AllocatorTest is Test {
         emit IAllocator.AllowanceChanged(vm.addr(1), allowanceBefore, allowanceBefore + 100);
         allocator.setAllowance(vm.addr(1), 100);
     }
-
 }
