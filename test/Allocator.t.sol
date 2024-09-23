@@ -76,7 +76,7 @@ contract AllocatorTest is Test {
     function testDatacapAllocatedEvent() public {
         allocator.addAllowance(vm.addr(1), 100);
         vm.prank(vm.addr(1));
-        vm.expectEmit();
+        vm.expectEmit(true, true, false, true);
         emit IAllocator.DatacapAllocated(vm.addr(1), "t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 50);
         allocator.addVerifiedClient("t1ur4z2o2k2rpyrhttkekijeep2vc34pwqwlt5nbi", 50);
     }
@@ -216,5 +216,19 @@ contract AllocatorTest is Test {
         vm.prank(vm.addr(1));
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, vm.addr(1)));
         allocator.renounceOwnership();
+    }
+
+    function testAddAllowanceTriggerAllowanceChangedEvent() public {
+        uint256 allowanceBefore = allocator.allowance(vm.addr(1));
+        vm.expectEmit(true, false, false, true);
+        emit IAllocator.AllowanceChanged(vm.addr(1), allowanceBefore, allowanceBefore + 100);
+        allocator.addAllowance(vm.addr(1), 100);
+    }
+
+    function testSetAllowanceTriggerAllowanceChangedEvent() public {
+        uint256 allowanceBefore = allocator.allowance(vm.addr(1));
+        vm.expectEmit(true, false, false, true);
+        emit IAllocator.AllowanceChanged(vm.addr(1), allowanceBefore, allowanceBefore + 100);
+        allocator.setAllowance(vm.addr(1), 100);
     }
 }
