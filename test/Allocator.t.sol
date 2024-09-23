@@ -217,4 +217,19 @@ contract AllocatorTest is Test {
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, vm.addr(1)));
         allocator.renounceOwnership();
     }
+
+    function testAddAllowanceTriggerAllowanceChangedEvent() public {
+        uint256 allowanceBefore = allocator.allowance(vm.addr(1));
+        vm.expectEmit(true, false, false, true);
+        emit IAllocator.AllowanceChanged(vm.addr(1), allowanceBefore, allowanceBefore + 100);
+        allocator.addAllowance(vm.addr(1), 100);
+    }
+
+    function testSetAllowanceTriggerAllowanceChangedEvent() public {
+        uint256 allowanceBefore = allocator.allowance(vm.addr(1));
+        vm.expectEmit(true, false, false, true);
+        emit IAllocator.AllowanceChanged(vm.addr(1), allowanceBefore, allowanceBefore + 100);
+        allocator.setAllowance(vm.addr(1), 100);
+    }
+
 }
