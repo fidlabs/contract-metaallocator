@@ -21,6 +21,12 @@ contract VerifregActorMock {
     }
 }
 
+contract VerifregActorFailingMock {
+    fallback(bytes calldata) external payable returns (bytes memory) {
+        return abi.encode(1, 0x51, hex"83410041004100");
+    }
+}
+
 // solhint-disable reentrancy
 contract ClientTest is Test {
     address public client = vm.addr(1);
@@ -35,6 +41,7 @@ contract ClientTest is Test {
     DataCapTypes.TransferParams public transferParams;
 
     VerifregActorMock public verifregActorMock;
+    VerifregActorFailingMock public verifregActorFailingMock;
     address public constant CALL_ACTOR_ID = 0xfe00000000000000000000000000000000000005;
 
     Client public clientContract;
@@ -67,6 +74,7 @@ contract ClientTest is Test {
         clientContract = Client(address(proxy));
 
         verifregActorMock = new VerifregActorMock();
+        verifregActorFailingMock = new VerifregActorFailingMock();
         vm.etch(CALL_ACTOR_ID, address(verifregActorMock).code);
 
         /// Dummy transfer params
@@ -774,5 +782,17 @@ contract ClientTest is Test {
             hex"821a85223bdf585b861903f3061903f34a006f05b59d3b2000000058458281861903e8d82a5828000181e2039220207dcae81b2a679a3955cc2e4b3504c23ce55b2db5dd2119841ecafa550e53900e1908001a0007e9001a005033401a0002d3028040";
         vm.expectRevert(abi.encodeWithSelector(Errors.InvalidCaller.selector, address(this), datacapContract));
         clientContract.handle_filecoin_method(3726118371, 81, params);
+    }
+
+    function testVerifregFailIsDetected() public {
+        vm.etch(CALL_ACTOR_ID, address(verifregActorFailingMock).code);
+        allowedSPs_.push(1200);
+
+        vm.prank(manager);
+        clientContract.addAllowedSPsForClient(client, allowedSPs_);
+
+        vm.prank(client);
+        vm.expectRevert(Errors.TransferFailed.selector);
+        clientContract.transfer(transferParams);
     }
 }
