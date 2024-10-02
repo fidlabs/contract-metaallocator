@@ -61,4 +61,8 @@ library Errors {
     /// @dev Thrown if caller is invalid
     // 0x6a172882
     error InvalidCaller(address caller, address expectedCaller);
+
+    /// @dev Datacap transfer failed
+    // 0x90b8ec18
+    error TransferFailed();
 }

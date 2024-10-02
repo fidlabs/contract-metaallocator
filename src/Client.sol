@@ -76,10 +76,11 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
 
         allowances[msg.sender] -= datacapAmount;
         emit DatacapSpent(msg.sender, datacapAmount);
-        // slither-disable-start unused-return
         /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
-        DataCapAPI.transfer(params);
-        // slither-disable-end unused-return
+        (int256 exitCode,) = DataCapAPI.transfer(params);
+        if (exitCode != 0) {
+            revert Errors.TransferFailed();
+        }
     }
 
     /**

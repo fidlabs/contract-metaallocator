@@ -736,6 +736,11 @@
   },
   {
     "type": "error",
+    "name": "TransferFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "UnfairDistribution",
     "inputs": [
       {
