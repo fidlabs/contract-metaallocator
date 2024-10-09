@@ -599,6 +599,11 @@
   },
   {
     "type": "error",
+    "name": "GetClaimsCallFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InsufficientAllowance",
     "inputs": []
   },
@@ -627,6 +632,11 @@
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidClaimExtensionRequest",
+    "inputs": []
   },
   {
     "type": "error",
@@ -689,7 +699,13 @@
   {
     "type": "error",
     "name": "NotAllowedSP",
-    "inputs": []
+    "inputs": [
+      {
+        "name": "provider",
+        "type": "uint64",
+        "internalType": "CommonTypes.FilActorId"
+      }
+    ]
   },
   {
     "type": "error",

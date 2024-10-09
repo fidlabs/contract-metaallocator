@@ -2,8 +2,10 @@
 pragma solidity 0.8.25;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {VerifRegTypes} from "filecoin-project-filecoin-solidity/v0.8/types/VerifRegTypes.sol";
 import {DataCapTypes} from "filecoin-project-filecoin-solidity/v0.8/types/DataCapTypes.sol";
 import {CommonTypes} from "filecoin-project-filecoin-solidity/v0.8/types/CommonTypes.sol";
+import {VerifRegAPI} from "filecoin-project-filecoin-solidity/v0.8/VerifRegAPI.sol";
 import {DataCapAPI} from "filecoin-project-filecoin-solidity/v0.8/DataCapAPI.sol";
 import {Errors} from "./libs/Errors.sol";
 import {CBORDecoder} from "filecoin-project-filecoin-solidity/v0.8/utils/CborDecode.sol";
@@ -39,6 +41,16 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
     mapping(address client => uint256 maxDeviationFromFairDistribution) public clientConfigs;
     mapping(address client => EnumerableMap.UintToUintMap allocations) internal _clientAllocationsPerSP;
 
+    struct ProviderAllocation {
+        CommonTypes.FilActorId provider;
+        uint64 size;
+    }
+
+    struct ProviderClaim {
+        CommonTypes.FilActorId provider;
+        CommonTypes.FilActorId claim;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -57,29 +69,101 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @dev Reverts with UnfairDistribution when trying to give too much to single SP
      */
     function transfer(DataCapTypes.TransferParams calldata params) external {
+        int256 exitCode;
+
         (uint256 tokenAmount, bool failed) = BigInts.toUint256(params.amount);
         if (failed) revert Errors.InvalidAmount();
         uint256 datacapAmount = tokenAmount / TOKEN_PRECISION;
         if (allowances[msg.sender] < datacapAmount) revert Errors.InsufficientAllowance();
-        (uint64[] memory providers, uint256[] memory sizes) = _deserializeAllocationRequests(params.operator_data);
-        _ensureSPsAreAllowed(providers);
-        for (uint256 i = 0; i < providers.length; i++) {
-            uint64 provider = providers[i];
-            uint256 size = sizes[i];
-            if (_clientAllocationsPerSP[msg.sender].contains(provider)) {
-                size += _clientAllocationsPerSP[msg.sender].get(provider);
-            }
-            // slither-disable-next-line unused-return
-            _clientAllocationsPerSP[msg.sender].set(provider, size);
-            _ensureMaxDeviationIsNotExceeded(size);
-        }
+
+        (ProviderAllocation[] memory allocations, ProviderClaim[] memory claimExtensions) =
+            _deserializeVerifregOperatorData(params.operator_data);
+
+        _verifyAndRegisterAllocations(allocations);
+        _verifyAndRegisterClaimExtensions(claimExtensions);
 
         allowances[msg.sender] -= datacapAmount;
         emit DatacapSpent(msg.sender, datacapAmount);
         /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
-        (int256 exitCode,) = DataCapAPI.transfer(params);
+        (exitCode,) = DataCapAPI.transfer(params);
         if (exitCode != 0) {
             revert Errors.TransferFailed();
+        }
+    }
+
+    function _verifyAndRegisterAllocations(ProviderAllocation[] memory allocations) internal {
+        for (uint256 i = 0; i < allocations.length; i++) {
+            ProviderAllocation memory alloc = allocations[i];
+            _ensureSPIsAllowed(alloc.provider);
+            uint256 size = alloc.size;
+            uint64 providerInt = CommonTypes.FilActorId.unwrap(alloc.provider);
+            if (_clientAllocationsPerSP[msg.sender].contains(providerInt)) {
+                size += _clientAllocationsPerSP[msg.sender].get(providerInt);
+            }
+            // slither-disable-next-line unused-return
+            _clientAllocationsPerSP[msg.sender].set(providerInt, size);
+            _ensureMaxDeviationIsNotExceeded(size);
+        }
+    }
+
+    function _verifyAndRegisterClaimExtensions(ProviderClaim[] memory claimExtensions) internal {
+        int256 exitCode;
+        uint256 claimProvidersCount = 0;
+        CommonTypes.FilActorId[] memory claimProviders = new CommonTypes.FilActorId[](claimExtensions.length);
+
+        // get providers list with no duplicates
+        for (uint256 i = 0; i < claimExtensions.length; i++) {
+            ProviderClaim memory claim = claimExtensions[i];
+            bool alreadyExists = false;
+            for (uint256 j = 0; j < claimProvidersCount; j++) {
+                if (CommonTypes.FilActorId.unwrap(claimProviders[j]) == CommonTypes.FilActorId.unwrap(claim.provider)) {
+                    alreadyExists = true;
+                    break;
+                }
+            }
+            if (!alreadyExists) {
+                _ensureSPIsAllowed(claim.provider);
+                claimProviders[claimProvidersCount++] = claim.provider;
+            }
+        }
+
+        CommonTypes.FilActorId[] memory claims = new CommonTypes.FilActorId[](claimExtensions.length);
+        for (uint256 providerIdx = 0; providerIdx < claimProvidersCount; providerIdx++) {
+            // for each provider, find all claims for this provider
+            uint256 claimCount = 0;
+            CommonTypes.FilActorId provider = claimProviders[providerIdx];
+            for (uint256 i = 0; i < claimExtensions.length; i++) {
+                ProviderClaim memory claim = claimExtensions[i];
+                if (CommonTypes.FilActorId.unwrap(claim.provider) == CommonTypes.FilActorId.unwrap(provider)) {
+                    claims[claimCount++] = claim.claim;
+                }
+            }
+            assembly {
+                mstore(claims, claimCount)
+            }
+
+            // get details of claims of this provider
+            VerifRegTypes.GetClaimsParams memory getClaimsParams =
+                VerifRegTypes.GetClaimsParams({provider: provider, claim_ids: claims});
+            VerifRegTypes.GetClaimsReturn memory claimsDetails;
+            (exitCode, claimsDetails) = VerifRegAPI.getClaims(getClaimsParams);
+            if (exitCode != 0 || claimsDetails.batch_info.success_count != claims.length) {
+                revert Errors.GetClaimsCallFailed();
+            }
+
+            // calculate total size of claims (a.k.a. how much datacap is going to this single SP)
+            uint256 size = 0;
+            for (uint256 i = 0; i < claimsDetails.claims.length; i++) {
+                VerifRegTypes.Claim memory claim = claimsDetails.claims[i];
+                size += claim.size;
+            }
+            uint64 providerInt = CommonTypes.FilActorId.unwrap(provider);
+            if (_clientAllocationsPerSP[msg.sender].contains(providerInt)) {
+                size += _clientAllocationsPerSP[msg.sender].get(providerInt);
+            }
+            // slither-disable-next-line unused-return
+            _clientAllocationsPerSP[msg.sender].set(providerInt, size);
+            _ensureMaxDeviationIsNotExceeded(size);
         }
     }
 
@@ -168,18 +252,19 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
     }
 
     /**
-     * @notice This function reads the array of AllocationRequests from the operator data and returns the providers
+     * @notice Deserialize Verifreg Operator Data
      * @param cborData The cbor encoded operator data
-     * @dev byteIdx The index of the byte to start reading from
      */
-    function _deserializeAllocationRequests(bytes memory cborData)
+    function _deserializeVerifregOperatorData(bytes memory cborData)
         internal
         pure
-        returns (uint64[] memory providers, uint256[] memory sizes)
+        returns (ProviderAllocation[] memory allocations, ProviderClaim[] memory claimExtensions)
     {
         uint256 operatorDataLength;
         uint256 allocationRequestsLength;
+        uint256 claimExtensionRequestsLength;
         uint64 provider;
+        uint64 claimId;
         uint64 size;
         uint256 byteIdx = 0;
 
@@ -187,10 +272,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         if (operatorDataLength != 2) revert Errors.InvalidOperatorData();
 
         (allocationRequestsLength, byteIdx) = CBORDecoder.readFixedArray(cborData, byteIdx);
-
-        providers = new uint64[](allocationRequestsLength);
-        sizes = new uint256[](allocationRequestsLength);
-
+        allocations = new ProviderAllocation[](allocationRequestsLength);
         for (uint256 i = 0; i < allocationRequestsLength; i++) {
             uint256 allocationRequestLength;
             (allocationRequestLength, byteIdx) = CBORDecoder.readFixedArray(cborData, byteIdx);
@@ -208,21 +290,39 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
             (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx); // expiration
             // slither-disable-end unused-return
 
-            providers[i] = provider;
-            sizes[i] = size;
+            allocations[i].provider = CommonTypes.FilActorId.wrap(provider);
+            allocations[i].size = size;
+        }
+
+        (claimExtensionRequestsLength, byteIdx) = CBORDecoder.readFixedArray(cborData, byteIdx);
+        claimExtensions = new ProviderClaim[](claimExtensionRequestsLength);
+        for (uint256 i = 0; i < claimExtensionRequestsLength; i++) {
+            uint256 claimExtensionRequestLength;
+            (claimExtensionRequestLength, byteIdx) = CBORDecoder.readFixedArray(cborData, byteIdx);
+
+            if (claimExtensionRequestLength != 3) {
+                revert Errors.InvalidClaimExtensionRequest();
+            }
+
+            (provider, byteIdx) = CBORDecoder.readUInt64(cborData, byteIdx);
+            (claimId, byteIdx) = CBORDecoder.readUInt64(cborData, byteIdx);
+            // slither-disable-start unused-return
+            (, byteIdx) = CBORDecoder.readInt64(cborData, byteIdx); // termMax
+            // slither-disable-end unused-return
+
+            claimExtensions[i].provider = CommonTypes.FilActorId.wrap(provider);
+            claimExtensions[i].claim = CommonTypes.FilActorId.wrap(claimId);
         }
     }
 
     /**
-     * @notice This function matches the providers with the allowedSPs
-     * @param providers The providers list to match
-     * @dev Reverts if providers do not match client SPs
+     * @notice This function checks if sender is allowed to use given provider
+     * @param provider The provider to check
+     * @dev Reverts if provider is not allowed
      */
-    function _ensureSPsAreAllowed(uint64[] memory providers) internal view {
-        for (uint256 i = 0; i < providers.length; i++) {
-            if (!_clientSPs[msg.sender].contains(providers[i])) {
-                revert Errors.NotAllowedSP();
-            }
+    function _ensureSPIsAllowed(CommonTypes.FilActorId provider) internal view {
+        if (!_clientSPs[msg.sender].contains(CommonTypes.FilActorId.unwrap(provider))) {
+            revert Errors.NotAllowedSP(provider);
         }
     }
 
