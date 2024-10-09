@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import {CommonTypes} from "filecoin-project-filecoin-solidity/v0.8/types/CommonTypes.sol";
+
 library Errors {
     /// @dev Error thrown when caller is not the manager
     // 0xc0fc8a8a
@@ -19,8 +21,8 @@ library Errors {
     error AmountEqualZero();
 
     /// @dev Error thrown when provided operator_data SP is not allowed
-    // 0x993a32a5
-    error NotAllowedSP();
+    // 0xb4c030fb
+    error NotAllowedSP(CommonTypes.FilActorId provider);
 
     /// @dev Error thrown when operator_data length is invalid
     // 0x5e9b2d53
@@ -65,4 +67,12 @@ library Errors {
     /// @dev Datacap transfer failed
     // 0x90b8ec18
     error TransferFailed();
+
+    /// @dev GetClaims call to VerifReg failed
+    // 0x9359037c
+    error GetClaimsCallFailed();
+
+    /// @dev Error thrown when claim extension request length is invalid
+    // 0x2edb7542
+    error InvalidClaimExtensionRequest();
 }
