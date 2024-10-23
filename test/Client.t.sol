@@ -102,7 +102,7 @@ contract ClientTest is Test {
         address mockProxy = address(new MockProxy());
         vm.etch(CALL_ACTOR_ID, address(mockProxy).code);
         vm.etch(address(5555), address(builtinActorsMock).code);
-        builtinActorsMock = BuiltinActorsMock(address(5555));
+        builtinActorsMock = BuiltinActorsMock(payable(address(5555)));
         builtinActorsMock.setGetClaimsResult(
             hex"8282018081881903E81866D82A5828000181E203922020071E414627E89D421B3BAFCCB24CBA13DDE9B6F388706AC8B1D48E58935C76381908001A003815911A005034D60000"
         );
