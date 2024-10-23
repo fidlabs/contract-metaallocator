@@ -12,36 +12,42 @@ import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol"
 import {IClient} from "../src/interfaces/IClient.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {BigInts} from "filecoin-project-filecoin-solidity/v0.8/utils/BigInts.sol";
-import {console} from "forge-std/console.sol";
 
 contract MockProxy {
-    fallback(bytes calldata data) external returns (bytes memory) {
+    error Err();
+
+    // solhint-disable-next-line no-complex-fallback
+    fallback(bytes calldata data) external payable returns (bytes memory) {
+        // solhint-disable-next-line avoid-low-level-calls
         (bool success, bytes memory retData) = address(5555).call(data);
-        if (!success) revert();
+        if (!success) revert Err();
         return retData;
     }
 }
 
 contract BuiltinActorsMock {
-    bytes getClaimsResult;
+    bytes internal _getClaimsResult;
+
+    error Err();
 
     function setGetClaimsResult(bytes memory d) public {
-        getClaimsResult = d;
+        _getClaimsResult = d;
     }
 
-    fallback(bytes calldata data) external returns (bytes memory) {
+    // solhint-disable-next-line no-complex-fallback
+    fallback(bytes calldata data) external payable returns (bytes memory) {
         /// use CBOR_CODEC to return a cbor encoded response
         /// third parameter is the cbor encoded response
         (uint256 methodNum,,,,, uint64 target) = abi.decode(data, (uint64, uint256, uint64, uint64, bytes, uint64));
         if (target == 6 && methodNum == 2199871187) {
             // verifreg get claims
-            return abi.encode(0, 0x51, getClaimsResult);
+            return abi.encode(0, 0x51, _getClaimsResult);
         }
         if (target == 7 && methodNum == 80475954) {
             // datacap transfer
             return abi.encode(0, 0x51, hex"83410041004100");
         }
-        revert();
+        revert Err();
     }
 }
 
@@ -1012,5 +1018,108 @@ contract ClientTest is Test {
         assertEq(providers[0], 1000);
         assertEq(allocations.length, 1);
         assertEq(allocations[0], 4096);
+    }
+
+    function testAddPackedSPs() public {
+        vm.startPrank(manager);
+
+        bytes memory sps = abi.encodePacked(uint64(1000), uint64(2000), uint64(3000));
+        clientContract.addAllowedSPsForClientPacked(client, sps);
+        assertEq(clientContract.clientSPs(client).length, 3);
+        assertTrue(_contains(1000, clientContract.clientSPs(client)));
+        assertTrue(_contains(2000, clientContract.clientSPs(client)));
+        assertTrue(_contains(3000, clientContract.clientSPs(client)));
+
+        bytes memory spsToRemove = abi.encodePacked(uint64(2000), uint64(1000));
+        clientContract.removeAllowedSPsForClientPacked(client, spsToRemove);
+        assertEq(clientContract.clientSPs(client).length, 1);
+        assertTrue(_contains(3000, clientContract.clientSPs(client)));
+    }
+
+    function testAddPackedSPsFailsWithInvalidPacking() public {
+        vm.startPrank(manager);
+
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"0000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"0000000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"000000000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003");
+
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e8");
+        assertEq(clientContract.clientSPs(client).length, 1);
+        assertTrue(_contains(1000, clientContract.clientSPs(client)));
+
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e800");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e80000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e8000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e800000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e80000000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e8000000000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e800000000000007");
+
+        clientContract.addAllowedSPsForClientPacked(client, hex"00000000000003e800000000000007d0");
+        assertEq(clientContract.clientSPs(client).length, 2);
+        assertTrue(_contains(1000, clientContract.clientSPs(client)));
+        assertTrue(_contains(2000, clientContract.clientSPs(client)));
+    }
+
+    function testRemovePackedSPsFailsWithInvalidPacking() public {
+        vm.startPrank(manager);
+        allowedSPs_.push(1000);
+        allowedSPs_.push(2000);
+        clientContract.addAllowedSPsForClient(client, allowedSPs_);
+
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"0000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"0000000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"000000000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003");
+
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e8");
+        assertEq(clientContract.clientSPs(client).length, 1);
+        assertTrue(_contains(2000, clientContract.clientSPs(client)));
+
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e800");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e80000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e8000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e800000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e80000000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e8000000000000");
+        vm.expectRevert(Errors.InvalidArgument.selector);
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e800000000000007");
+
+        clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e800000000000007d0");
+        assertEq(clientContract.clientSPs(client).length, 0);
     }
 }
