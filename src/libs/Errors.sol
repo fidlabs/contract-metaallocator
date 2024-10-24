@@ -75,4 +75,8 @@ library Errors {
     /// @dev Error thrown when claim extension request length is invalid
     // 0x2edb7542
     error InvalidClaimExtensionRequest();
+
+    /// @dev Thrown when argument can't be parsed
+    // 0xa9cb9e0d
+    error InvalidArgument();
 }

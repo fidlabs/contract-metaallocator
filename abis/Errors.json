@@ -36,6 +36,11 @@
   },
   {
     "type": "error",
+    "name": "InvalidArgument",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidCaller",
     "inputs": [
       {

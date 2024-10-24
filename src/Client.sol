@@ -138,6 +138,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
                     claims[claimCount++] = claim.claim;
                 }
             }
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 mstore(claims, claimCount)
             }
@@ -229,7 +230,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @param client The address of the client for whom the allowed storage providers are being set
      * @param allowedSPs_ The list of allowed storage providers
      */
-    function addAllowedSPsForClient(address client, uint64[] calldata allowedSPs_) external onlyOwner {
+    function addAllowedSPsForClient(address client, uint64[] memory allowedSPs_) public onlyOwner {
         for (uint256 i = 0; i < allowedSPs_.length; i++) {
             // slither-disable-next-line unused-return
             _clientSPs[client].add(allowedSPs_[i]);
@@ -243,12 +244,52 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @param client The address of the client for whom the allowed storage providers are being removed
      * @param disallowedSPs_ The list of storage providers to remove
      */
-    function removeAllowedSPsForClient(address client, uint64[] calldata disallowedSPs_) external onlyOwner {
+    function removeAllowedSPsForClient(address client, uint64[] memory disallowedSPs_) public onlyOwner {
         for (uint256 i = 0; i < disallowedSPs_.length; i++) {
             // slither-disable-next-line unused-return
             _clientSPs[client].remove(disallowedSPs_[i]);
         }
         emit SPsRemovedForClient(client, disallowedSPs_);
+    }
+
+    /**
+     * @notice This function sets the list of allowed storage providers for a specific client
+     * @dev This function can only be called by the owner
+     * @param client The address of the client for whom the allowed storage providers are being set
+     * @param allowedSPs_ abi.encodePacked tuple of uint64's representing SPs to allow
+     */
+    function addAllowedSPsForClientPacked(address client, bytes calldata allowedSPs_) external onlyOwner {
+        uint64[] memory sps = _unpackSPs(allowedSPs_);
+        addAllowedSPsForClient(client, sps);
+    }
+
+    /**
+     * @notice This function removes storage providers from the allowed list for a specific client
+     * @dev This function can only be called by the owner
+     * @param client The address of the client for whom the allowed storage providers are being removed
+     * @param disallowedSPs_ abi.encodePacked tuple of uint64's representing SPs to disallow
+     */
+    function removeAllowedSPsForClientPacked(address client, bytes calldata disallowedSPs_) external onlyOwner {
+        uint64[] memory sps = _unpackSPs(disallowedSPs_);
+        removeAllowedSPsForClient(client, sps);
+    }
+
+    /**
+     * @notice Unpack abi.encodePacked tuple of uint64 SPs
+     * @param packedSPs encoded sps
+     * @return sps decoded sps
+     */
+    function _unpackSPs(bytes calldata packedSPs) internal pure returns (uint64[] memory sps) {
+        if (packedSPs.length % 8 != 0) {
+            revert Errors.InvalidArgument();
+        }
+
+        uint256 n = packedSPs.length / 8;
+        sps = new uint64[](n);
+        for (uint256 i = 0; i < n; i++) {
+            sps[i] = uint64(bytes8(packedSPs[i * 8:i * 8 + 8]));
+        }
+        return sps;
     }
 
     /**
