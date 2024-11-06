@@ -2,6 +2,11 @@
 
 Management system to provide simpler allowance transfer between RKH, notaries, and clients
 
+## Official deployments
+
+Filecoin mainnet:
+* BeaconProxyFactory for client smart contract instances: `f410fucmf6dt2uc4trxaljddf4ufduofpilpeyum7cfa`
+
 ## Getting started
 
 ### Install foundry
