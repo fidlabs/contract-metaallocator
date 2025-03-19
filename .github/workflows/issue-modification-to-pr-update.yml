@@ -1,0 +1,24 @@
+name: Update PR from Issue Modification
+
+on:
+  issues:
+    types:
+      - edited
+
+jobs:
+  convert-issue-to-pr:
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_URL: https://api.allocator.tech
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Convert Issue To PR
+        run: |
+          REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+          echo "Updating PR from Issue: ${{ github.event.issue.number }} in $REPO_NAME"
+          curl -f --header "Content-Type: application/json" \
+               --request POST \
+               --data '{"issue_number": "'${{ github.event.issue.number }}'", "repo": "'$REPO_NAME'", "owner": "'${{ github.repository_owner }}'"}' \
+               "${BACKEND_URL}/application/update-from-issue"
