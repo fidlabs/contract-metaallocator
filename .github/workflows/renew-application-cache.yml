@@ -1,0 +1,20 @@
+name: Renew Cache
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Schedule to run at 1 AM every day
+    - cron: '0 1 * * *'
+
+jobs:
+  renew_cache:
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_URL: https://api.allocator.tech
+    steps:
+      - name: Renew Application Cache
+        run: |
+          REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+          curl -f -X POST "${BACKEND_URL}/application/cache/renewal" \
+          -H "Content-Type: application/json" \
+          -d '{"owner": "'${{ github.repository_owner }}'", "repo": "'$REPO_NAME'"}'
