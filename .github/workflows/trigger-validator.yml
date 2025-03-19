@@ -1,0 +1,37 @@
+name: Validate Application Trigger
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  validate-trigger:
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_URL: https://api.allocator.tech
+    steps:
+      - name: Call Backend to Validate Application Trigger
+        id: validate
+        run: |
+          USER_HANDLE="${{ github.actor }}"
+          REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+          OWNER_NAME="${{ github.repository_owner }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          echo "Calling backend to validate with pr_number: $PR_NUMBER, user_handle: $USER_HANDLE, repo: $REPO_NAME, and owner: $OWNER_NAME"
+          RESPONSE=$(curl --header "Content-Type: application/json" \
+            --request POST \
+            --data '{"pr_number": "'$PR_NUMBER'", "user_handle": "'$USER_HANDLE'", "repo": "'$REPO_NAME'", "owner": "'$OWNER_NAME'"}' \
+            "${BACKEND_URL}/application/trigger/validate")
+          echo "Response from validation: $RESPONSE"
+
+          if [ "$RESPONSE" != "true" ]; then
+            echo "Error: Validation returned false"
+            exit 1
+          fi
+
+      - name: Validation Success
+        if: steps.validate.outcome == 'success'
+        run: echo "Validation successful!"
