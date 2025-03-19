@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "Version": { "type": "string" },
+    "ID": { "type": "string" },
+    "Issue Number": { "type": "string" },
+    "Client": {
+      "type": "object",
+      "properties": {
+        "Name": { "type": "string" },
+        "Region": { "type": "string" },
+        "Industry": { "type": "string" },
+        "Website": { "type": "string" },
+        "Social Media": { "type": "string" },
+        "Role": { "type": "string" }
+      },
+      "required": ["Name", "Region", "Industry", "Website", "Social Media", "Role"]
+    },
+    "Project": {
+      "type": "object",
+      "properties": {
+        "Brief history of your project and organization": { "type": "string" },
+        "Is this project associated with other projects/ecosystem stakeholders?": { "type": "string" },
+        "Describe the data being stored onto Filecoin": { "type": "string" },
+        "Where was the data currently stored in this dataset sourced from": { "type": "string" },
+        "How do you plan to prepare the dataset": { "type": "string" },
+        "Please share a sample of the data (a link to a file, an image, a table, etc., are good ways to do this.)": { "type": "string" },
+        "Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)": { "type": "string" },
+        "What is the expected retrieval frequency for this data": { "type": "string" },
+        "For how long do you plan to keep this dataset stored on Filecoin": { "type": "string" },
+        "In which geographies do you plan on making storage deals": { "type": "string" },
+        "How will you be distributing your data to storage providers": { "type": "string" },
+        "Please list the provider IDs and location of the storage providers you will be working with. Note that it is a requirement to list a minimum of 5 unique provider IDs, and that your client address will be verified against this list in the future": { "type": "string" },
+        "Can you confirm that you will follow the Fil+ guideline (Data owner should engage at least 4 SPs and no single SP ID should receive >30% of a client's allocated DataCap)": { "type": "string" }
+      },
+      "required": [
+        "Brief history of your project and organization",
+        "Is this project associated with other projects/ecosystem stakeholders?",
+        "Describe the data being stored onto Filecoin",
+        "Where was the data currently stored in this dataset sourced from",
+        "How do you plan to prepare the dataset",
+        "Please share a sample of the data (a link to a file, an image, a table, etc., are good ways to do this.)",
+        "Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)",
+        "What is the expected retrieval frequency for this data",
+        "For how long do you plan to keep this dataset stored on Filecoin",
+        "In which geographies do you plan on making storage deals",
+        "How will you be distributing your data to storage providers",
+        "Please list the provider IDs and location of the storage providers you will be working with. Note that it is a requirement to list a minimum of 5 unique provider IDs, and that your client address will be verified against this list in the future",
+        "Can you confirm that you will follow the Fil+ guideline (Data owner should engage at least 4 SPs and no single SP ID should receive >30% of a client's allocated DataCap)"
+      ]
+    },
+    "Datacap": {
+      "type": "object",
+      "properties": {
+        "Type": { "type": "string" },
+        "Data Type": { "type": "string" },
+        "Total Requested Amount": {
+        "type": "string",
+        "pattern": "\\d+(\\.\\d+)?\\s?(GiB|TiB|PiB|TB|Tb|PB|Pb)$"
+        },
+        "Single Size Dataset": { "type": "string",
+         "pattern": "\\d+(\\.\\d+)?\\s?(GiB|TiB|PiB|TB|Tb|PB|Pb)$"
+        },
+        "Replicas": { "type": "number" },
+        "Weekly Allocation": { "type": "string",
+          "pattern": "\\d+(\\.\\d+)?\\s?(GiB|TiB|PiB|TB|Tb|PB|Pb)$" 
+        }
+      },
+      "required": ["Type", "Data Type", "Total Requested Amount", "Single Size Dataset", "Replicas", "Weekly Allocation"]
+    },
+    "Lifecycle": {
+      "type": "object",
+      "properties": {
+        "State": { "type": "string" },
+        "Validated At": { "type": "string" },
+        "Validated By": { "type": "string" },
+        "Active": { "type": "boolean" },
+        "Updated At": { "type": "string" },
+        "Active Request ID": { "type": "string" },
+        "On Chain Address": { "type": "string" },
+        "Multisig Address": { "type": "string" }
+      },
+      "required": [
+        "State",
+        "Validated At",
+        "Validated By",
+        "Active",
+        "Updated At",
+        "Active Request ID",
+        "On Chain Address",
+        "Multisig Address"
+      ]
+    },
+    "Allocation Requests": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "properties": {
+          "ID": { "type": "string" },
+          "Request Type": { "type": "string" },
+          "Created At": { "type": "string" },
+          "Updated At": { "type": "string" },
+          "Active": { "type": "boolean" },
+          "Allocation Amount": { "type": "string" },
+          "Signers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Github Username": { "type": "string" },
+                "Signing Address": { "type": "string" },
+                "Created At": { "type": "string" },
+                "Message CID": { "type": "string" }
+              },
+              "required": ["Github Username", "Signing Address", "Created At", "Message CID"]
+            }
+          }
+        },
+        "required": ["ID", "Request Type", "Created At", "Updated At", "Active", "Allocation Amount", "Signers"]
+      }
+    }
+  },
+  "required": ["Version", "ID", "Issue Number", "Client", "Project", "Datacap", "Lifecycle", "Allocation Requests"],
+  "additionalProperties": false
+}
