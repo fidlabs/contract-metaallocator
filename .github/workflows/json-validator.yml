@@ -1,0 +1,53 @@
+name: Json Structure Validator
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+    paths:
+      - '**/*.json'
+
+jobs:
+  validate_json:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install AJV CLI
+        run: npm install -g ajv-cli
+
+      - name: Validate JSON
+        run: |
+          echo "Searching for JSON files..."
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            FILE_TO_VALIDATE=$(git diff --name-only HEAD^1 HEAD | grep '\.json$' | head -n 1)
+          else
+            FILE_TO_VALIDATE=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '\.json$' | head -n 1)
+          fi
+          echo "$FILE_TO_VALIDATE"
+          if [ -z "$FILE_TO_VALIDATE" ]; then
+            echo "No JSON files found for validation."
+            exit 0
+          fi
+          
+          echo "Validating JSON file..."
+          if [ -f "$FILE_TO_VALIDATE" ]; then
+            echo "Validating $FILE_TO_VALIDATE..."
+            ajv validate -s validationSchema.json -d "$FILE_TO_VALIDATE" || exit 1
+          else
+            echo "$FILE_TO_VALIDATE not found. Skipping..."
+          fi
+          echo "Validation complete."
