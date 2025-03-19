@@ -1,0 +1,37 @@
+name: Validate Application Approval
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  validate-approval:
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_URL: https://api.allocator.tech
+    steps:
+      - name: Call Backend to Validate Application Approval
+        id: validate
+        run: |
+          USER_HANDLE="${{ github.actor }}"
+          REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)
+          OWNER_NAME="${{ github.repository_owner }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          echo "Calling backend to validate with pr_number: $PR_NUMBER, user_handle: $USER_HANDLE, repo: $REPO_NAME, and owner: $OWNER_NAME"
+          RESPONSE=$(curl --header "Content-Type: application/json" \
+            --request POST \
+            --data '{"pr_number": "'$PR_NUMBER'", "user_handle": "'$USER_HANDLE'", "repo": "'$REPO_NAME'", "owner": "'$OWNER_NAME'"}' \
+            "${BACKEND_URL}/application/approval/validate")
+          echo "Response from validation: $RESPONSE"
+
+          if [ "$RESPONSE" != "true" ]; then
+            echo "Error: Validation returned false"
+            exit 1
+          fi
+
+      - name: Validation Success
+        if: steps.validate.outcome == 'success'
+        run: echo "Validation successful!"
