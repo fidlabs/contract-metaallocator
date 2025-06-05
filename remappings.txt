@@ -14,6 +14,6 @@ openzeppelin-foundry-upgrades/=lib/openzeppelin-foundry-upgrades/src/
 openzeppelin/=lib/filecoin-project-filecoin-solidity/lib/openzeppelin-contracts-upgradeable/contracts/
 solidity-BigNumber/=lib/filecoin-project-filecoin-solidity/contracts/vendor/solidity-BigNumber/src/
 solidity-bignumber/=lib/filecoin-solidity/lib/solidity-bignumber/src/
-solidity-cborutils/=lib/filecoin-project-filecoin-solidity/lib/solidity-cborutils/contracts/
 solidity-cborutils/contracts/=lib/filecoin-solidity/lib/solidity-cborutils/contracts/
+solidity-cborutils/=lib/filecoin-project-filecoin-solidity/lib/solidity-cborutils/contracts/
 solidity-stringutils/=lib/openzeppelin-foundry-upgrades/lib/solidity-stringutils/
