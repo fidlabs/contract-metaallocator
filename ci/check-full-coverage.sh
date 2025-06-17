@@ -4,10 +4,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")"/..
 
-forge clean && forge coverage --report lcov
+forge clean && forge build && forge coverage --no-match-coverage "(script|test|AllocatorV1)" --report lcov
 
-awk '/TN:/,/SF:test\//{if (!/SF:test\// && !/SF:script/) print; if (/TN:/ && /SF:test\//) exit}' lcov.info > lcov_without_tests.info
-summary=$(lcov --summary lcov_without_tests.info --rc lcov_branch_coverage=1)
+summary=$(lcov --summary lcov.info --rc branch_coverage=1)
 
 lines_coverage=$(echo "$summary" | awk '/lines/{print $2}')
 functions_coverage=$(echo "$summary" | awk '/functions/{print $2}')

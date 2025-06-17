@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import {Test} from "forge-std/Test.sol";
 import {Allocator} from "../src/Allocator.sol";
+import {AllocatorV1} from "../src/AllocatorV1.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IAllocator} from "../src/interfaces/IAllocator.sol";
@@ -186,6 +187,22 @@ contract AllocatorTest is Test {
         allocator.upgradeToAndCall(newImpl, "");
     }
 
+    function testAllocatorBalanceAfterUpdate() public {
+        address oldImpl = address(new AllocatorV1());
+        ERC1967Proxy proxy = new ERC1967Proxy(oldImpl, abi.encodeCall(Allocator.initialize, (address(this))));
+        AllocatorV1 allocatorContract = AllocatorV1(address(proxy));
+        allocatorContract.addAllowance(vm.addr(1), 100);
+        address[] memory allocators = allocatorContract.getAllocators();
+        assertEq(allocators[0], vm.addr(1));
+        uint256 allowanceBeforeUpdate = allocatorContract.allowance(vm.addr(1));
+        address newImpl = address(new Allocator());
+        allocatorContract.upgradeToAndCall(newImpl, "");
+        uint256 allowanceAfterUpdate = allocatorContract.allowance(vm.addr(1));
+        assertEq(allowanceBeforeUpdate, allowanceAfterUpdate);
+        allocators = allocatorContract.getAllocators();
+        assertEq(allocators[0], vm.addr(1));
+    }
+
     function testRevertAlreadyZeroAllowance() public {
         vm.expectRevert(IAllocator.AlreadyZero.selector);
         allocator.setAllowance(vm.addr(1), 0);
@@ -230,5 +247,58 @@ contract AllocatorTest is Test {
         vm.expectEmit(true, false, false, true);
         emit IAllocator.AllowanceChanged(vm.addr(1), allowanceBefore, allowanceBefore + 100);
         allocator.setAllowance(vm.addr(1), 100);
+    }
+
+    function testDecreaseAllowanceRevertAmountError() public {
+        vm.expectRevert(abi.encodeWithSelector(IAllocator.AmountEqualZero.selector));
+        allocator.decreaseAllowance(vm.addr(1), 0);
+    }
+
+    function testDecreaseAllowanceRevertNotOwnerError() public {
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, vm.addr(1)));
+        vm.prank(vm.addr(1));
+        allocator.decreaseAllowance(vm.addr(1), 50);
+    }
+
+    function testDecreaseAllowanceAlreadyZeroError() public {
+        vm.expectRevert(abi.encodeWithSelector(IAllocator.AlreadyZero.selector));
+        allocator.decreaseAllowance(vm.addr(1), 150);
+    }
+
+    function testDecreaseMoreAllowanceThanClientAlreadyHas() public {
+        allocator.setAllowance(vm.addr(1), 100);
+        vm.expectEmit(true, false, false, true);
+        emit IAllocator.AllowanceChanged(vm.addr(1), 100, 0);
+        allocator.decreaseAllowance(vm.addr(1), 200);
+        assertEq(allocator.allowance(vm.addr(1)), 0);
+    }
+
+    function testDecreaseAllowance() public {
+        allocator.setAllowance(vm.addr(1), 100);
+        allocator.decreaseAllowance(vm.addr(1), 50);
+        uint256 newAllowance = allocator.allowance(vm.addr(1));
+        assertEq(100 - 50, newAllowance);
+    }
+
+    function testDecreaseAllowanceMoreTimes() public {
+        allocator.setAllowance(vm.addr(1), 100);
+        allocator.decreaseAllowance(vm.addr(1), 25);
+        uint256 newAllowance = allocator.allowance(vm.addr(1));
+        assertEq(100 - 25, newAllowance);
+        uint256 allowanceBeforeNextDecrease = allocator.allowance(vm.addr(1));
+        allocator.decreaseAllowance(vm.addr(1), 25);
+        newAllowance = allocator.allowance(vm.addr(1));
+        assertEq(allowanceBeforeNextDecrease - 25, newAllowance);
+        allowanceBeforeNextDecrease = allocator.allowance(vm.addr(1));
+        allocator.decreaseAllowance(vm.addr(1), 50);
+        newAllowance = allocator.allowance(vm.addr(1));
+        assertEq(allowanceBeforeNextDecrease - 50, newAllowance);
+    }
+
+    function testDecreaseAllowanceEmitEvent() public {
+        allocator.setAllowance(vm.addr(1), 100);
+        vm.expectEmit(true, false, false, true);
+        emit IAllocator.AllowanceChanged(vm.addr(1), 100, 50);
+        allocator.decreaseAllowance(vm.addr(1), 50);
     }
 }
