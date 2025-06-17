@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
  * @title Interface for Allocator contract
  * @notice Definition of core functions and events of the Allocator contract
  */
-interface IAllocator {
+interface IAllocatorV1 {
     /**
      * @dev Thrown if caller doesn't have enough allowance for given action
      */
@@ -69,17 +69,6 @@ interface IAllocator {
      * @dev Reverts if trying to add 0 allowance
      */
     function addAllowance(address allocator, uint256 amount) external;
-
-    /**
-     * @notice Decrease Allocator allowance
-     * @dev This function can only be called by the owner
-     * @param allocator Allocator whose allowance is reduced
-     * @param amount Amount to decrease the allowance
-     * @dev Emits AllowanceChanged event
-     * @dev Reverts if trying to decrease allowance by 0
-     * @dev Reverts if allocator allowance is already 0
-     */
-    function decreaseAllowance(address allocator, uint256 amount) external;
 
     /**
      * @notice Set allowance of an Allocator. Can be used to remove allowance.

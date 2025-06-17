@@ -56,24 +56,6 @@
   },
   {
     "type": "function",
-    "name": "decreaseAllowance",
-    "inputs": [
-      {
-        "name": "allocator",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "getAllocators",
     "inputs": [],
     "outputs": [

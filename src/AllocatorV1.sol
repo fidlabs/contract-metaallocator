@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {IAllocator} from "./interfaces/IAllocator.sol";
+import {IAllocatorV1} from "./interfaces/IAllocatorV1.sol";
 import {VerifRegAPI} from "filecoin-solidity/contracts/v0.8/VerifRegAPI.sol";
 import {VerifRegTypes} from "filecoin-solidity/contracts/v0.8/types/VerifRegTypes.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
@@ -20,7 +20,7 @@ import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap
  * allowance on the contract, assigned by contract owner.
  * @dev Contract is upgradeable via UUPS by contract owner.
  */
-contract Allocator is Initializable, Ownable2StepUpgradeable, UUPSUpgradeable, IAllocator {
+contract AllocatorV1 is Initializable, Ownable2StepUpgradeable, UUPSUpgradeable, IAllocatorV1 {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     /**
@@ -93,27 +93,6 @@ contract Allocator is Initializable, Ownable2StepUpgradeable, UUPSUpgradeable, I
         } else if (allowanceBefore > 0 && amount == 0) {
             _allocators.remove(allocator);
         }
-        emit AllowanceChanged(allocator, allowanceBefore, allowance(allocator));
-    }
-
-    /**
-     * @notice Decrease allocator allowance
-     * @dev This function can only be called by the owner
-     * @param allocator Allocator whose allowance is reduced
-     * @param amount Amount to decrease the allowance
-     * @dev Emits AllowanceChanged event
-     * @dev Reverts if trying to decrease allowance by 0
-     * @dev Reverts if allocator allowance is already 0
-     */
-    function decreaseAllowance(address allocator, uint256 amount) external onlyOwner {
-        if (amount == 0) revert AmountEqualZero();
-        uint256 allowanceBefore = allowance(allocator);
-        if (allowanceBefore == 0) {
-            revert AlreadyZero();
-        } else if (allowanceBefore < amount) {
-            amount = allowanceBefore;
-        }
-        _allocators.set(allocator, allowanceBefore - amount);
         emit AllowanceChanged(allocator, allowanceBefore, allowance(allocator));
     }
 
