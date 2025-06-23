@@ -301,4 +301,20 @@ contract AllocatorTest is Test {
         emit IAllocator.AllowanceChanged(vm.addr(1), 100, 50);
         allocator.decreaseAllowance(vm.addr(1), 50);
     }
+
+    function testDecreaseAllowanceRemoveAllocator() public {
+        allocator.setAllowance(vm.addr(1), 100);
+        allocator.setAllowance(vm.addr(2), 100);
+        address[] memory allocators = allocator.getAllocators();
+        assertEq(allocators[0], vm.addr(1));
+        assertEq(allocators[1], vm.addr(2));
+        assertEq(allocators.length, 2);
+        allocator.decreaseAllowance(vm.addr(1), 150);
+        allocators = allocator.getAllocators();
+        assertEq(allocators[0], vm.addr(2));
+        assertEq(allocators.length, 1);
+        allocator.decreaseAllowance(vm.addr(2), 100);
+        allocators = allocator.getAllocators();
+        assertEq(allocators.length, 0);
+    }
 }

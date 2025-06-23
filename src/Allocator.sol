@@ -112,8 +112,12 @@ contract Allocator is Initializable, Ownable2StepUpgradeable, UUPSUpgradeable, I
             revert AlreadyZero();
         } else if (allowanceBefore < amount) {
             amount = allowanceBefore;
+            _allocators.remove(allocator);
+        } else if (allowanceBefore == amount) {
+            _allocators.remove(allocator);
+        } else {
+            _allocators.set(allocator, allowanceBefore - amount);
         }
-        _allocators.set(allocator, allowanceBefore - amount);
         emit AllowanceChanged(allocator, allowanceBefore, allowance(allocator));
     }
 
