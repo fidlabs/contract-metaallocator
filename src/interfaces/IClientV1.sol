@@ -7,7 +7,7 @@ import {DataCapTypes} from "filecoin-project-filecoin-solidity/v0.8/types/DataCa
  * @title Interface for Client contract
  * @notice Definition of core functions and events of the Client contract
  */
-interface IClient {
+interface IClientV1 {
     /**
      * @notice Emitted when the list of allowed storage providers is changed.
      * @param client The address of the client for whom the allowed storage providers are being set
@@ -152,6 +152,7 @@ interface IClient {
      * @dev Reverts if caller is not a verifreg
      * @dev Reverts if trying to send a unsupported token type
      * @dev Reverts if trying to receive invalid token
+     * @dev Reverts if trying to send a unsupported token
      */
     // solhint-disable func-name-mixedcase
     function handle_filecoin_method(uint64 method, uint64 inputCodec, bytes calldata params)

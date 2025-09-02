@@ -9,7 +9,7 @@ import {VerifRegAPI} from "filecoin-project-filecoin-solidity/v0.8/VerifRegAPI.s
 import {DataCapAPI} from "filecoin-project-filecoin-solidity/v0.8/DataCapAPI.sol";
 import {Errors} from "./libs/Errors.sol";
 import {CBORDecoder} from "filecoin-project-filecoin-solidity/v0.8/utils/CborDecode.sol";
-import {IClient} from "./interfaces/IClient.sol";
+import {IClientV1} from "./interfaces/IClientV1.sol";
 import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {BigInts} from "filecoin-project-filecoin-solidity/v0.8/utils/BigInts.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
@@ -26,7 +26,7 @@ import {UtilsHandlers} from "filecoin-project-filecoin-solidity/v0.8/utils/Utils
  * DataCap to permitted storage providers, adhering to the configured allowances
  * and distribution rules.
  */
-contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpgradeable {
+contract ClientV1 is Initializable, IClientV1, MulticallUpgradeable, Ownable2StepUpgradeable {
     using EnumerableSet for EnumerableSet.UintSet;
     using EnumerableMap for EnumerableMap.UintToUintMap;
 
@@ -426,6 +426,7 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
      * @dev Reverts if caller is not a datacap contract
      * @dev Reverts if trying to send a unsupported token type
      * @dev Reverts if trying to receive invalid token
+     * @dev Reverts if trying to send a unsupported token
      */
     // solhint-disable func-name-mixedcase
     function handle_filecoin_method(uint64 method, uint64 inputCodec, bytes calldata params)
@@ -437,8 +438,11 @@ contract Client is Initializable, IClient, MulticallUpgradeable, Ownable2StepUpg
         CommonTypes.UniversalReceiverParams memory receiverParams =
             UtilsHandlers.handleFilecoinMethod(method, inputCodec, params);
         if (receiverParams.type_ != _FRC46_TOKEN_TYPE) revert Errors.UnsupportedType();
-        (uint256 tokenReceivedLength,) = CBORDecoder.readFixedArray(receiverParams.payload, 0);
+        (uint256 tokenReceivedLength, uint256 byteIdx) = CBORDecoder.readFixedArray(receiverParams.payload, 0);
         if (tokenReceivedLength != 6) revert Errors.InvalidTokenReceived();
+        uint64 from;
+        (from, byteIdx) = CBORDecoder.readUInt64(receiverParams.payload, byteIdx); // payload == FRC46TokenReceived
+        if (from != CommonTypes.FilActorId.unwrap(DataCapTypes.ActorID)) revert Errors.UnsupportedToken();
         exitCode = 0;
         codec = 0;
         data = "";
