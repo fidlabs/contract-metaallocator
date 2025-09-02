@@ -814,6 +814,11 @@
   },
   {
     "type": "error",
+    "name": "UnsupportedToken",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "UnsupportedType",
     "inputs": []
   }

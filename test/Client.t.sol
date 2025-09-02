@@ -4,12 +4,14 @@ pragma solidity 0.8.25;
 
 import {Test} from "forge-std/Test.sol";
 import {Client} from "../src/Client.sol";
+import {ClientV1} from "../src/ClientV1.sol";
 import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import {Errors} from "../src/libs/Errors.sol";
 import {DataCapTypes} from "filecoin-project-filecoin-solidity/v0.8/types/DataCapTypes.sol";
 import {CommonTypes} from "filecoin-project-filecoin-solidity/v0.8/types/CommonTypes.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import {IClient} from "../src/interfaces/IClient.sol";
+import {IClientV1} from "../src/interfaces/IClientV1.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {BigInts} from "filecoin-project-filecoin-solidity/v0.8/utils/BigInts.sol";
 
@@ -778,7 +780,18 @@ contract ClientTest is Test {
         assertEq(allocations[1], 1536);
     }
 
-    function testHandleFilecoinMethod() public {
+    function testHandleFilecoinMethodForVerifregContract() public {
+        bytes memory params =
+            hex"821A85223BDF58598606061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040";
+        vm.prank(datacapContract);
+        (uint32 exitCode, uint64 codec, bytes memory data) =
+            clientContract.handle_filecoin_method(3726118371, 0x51, params);
+        assertEq(exitCode, 0);
+        assertEq(codec, 0);
+        assertEq(data, "");
+    }
+
+    function testHandleFilecoinMethodForDatacapContract() public {
         bytes memory params =
             hex"821A85223BDF58598607061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040";
         vm.prank(datacapContract);
@@ -802,14 +815,6 @@ contract ClientTest is Test {
             hex"821A85223BDF585D871903F3061903F34A006F05B59D3B2000000058458281861903E8D82A5828000181E2039220207DCAE81B2A679A3955CC2E4B3504C23CE55B2DB5DD2119841ECAFA550E53900E1908001A0007E9001A005033401A0002D3028040187B";
         vm.prank(datacapContract);
         vm.expectRevert(abi.encodeWithSelector(Errors.InvalidTokenReceived.selector));
-        clientContract.handle_filecoin_method(3726118371, 81, params);
-    }
-
-    function testHandleFilecoinMethodExpectRevertUnsupportedToken() public {
-        bytes memory params =
-            hex"821a85223bdf585b861903f3061903f34a006f05b59d3b2000000058458281861903e8d82a5828000181e2039220207dcae81b2a679a3955cc2e4b3504c23ce55b2db5dd2119841ecafa550e53900e1908001a0007e9001a005033401a0002d3028040";
-        vm.prank(datacapContract);
-        vm.expectRevert(abi.encodeWithSelector(Errors.UnsupportedToken.selector));
         clientContract.handle_filecoin_method(3726118371, 81, params);
     }
 
@@ -1121,5 +1126,47 @@ contract ClientTest is Test {
 
         clientContract.removeAllowedSPsForClientPacked(client, hex"00000000000003e800000000000007d0");
         assertEq(clientContract.clientSPs(client).length, 0);
+    }
+
+    function testClientBalanceAfterUpdate() public {
+        address oldImpl = address(new ClientV1());
+        UpgradeableBeacon beaconToUpdate = new UpgradeableBeacon(oldImpl, address(this));
+        BeaconProxy proxyToUpdate =
+            new BeaconProxy(address(beaconToUpdate), abi.encodeWithSelector(ClientV1.initialize.selector, manager));
+        ClientV1 oldClientContract = ClientV1(address(proxyToUpdate));
+        vm.prank(manager);
+        oldClientContract.increaseAllowance(client, 4096);
+        address newImpl = address(new Client());
+        beaconToUpdate.upgradeTo(newImpl);
+        Client newClientContract = Client(address(proxyToUpdate));
+        assertEq(newClientContract.allowances(client), 4096);
+    }
+
+     function testClientSPsAfterUpdate() public {
+        address oldImpl = address(new ClientV1());
+        UpgradeableBeacon beaconToUpdate = new UpgradeableBeacon(oldImpl, address(this));
+        BeaconProxy proxyToUpdate =
+            new BeaconProxy(address(beaconToUpdate), abi.encodeWithSelector(ClientV1.initialize.selector, manager));
+        ClientV1 oldClientContract = ClientV1(address(proxyToUpdate));
+        uint64[] memory allowedSPs = new uint64[](2);
+        allowedSPs[0] = 1234;
+        allowedSPs[1] = 5678;
+        vm.prank(manager);
+        oldClientContract.addAllowedSPsForClient(client, allowedSPs);
+        address newImpl = address(new Client());
+        beaconToUpdate.upgradeTo(newImpl);
+        Client newClientContract = Client(address(proxyToUpdate));
+        assertEq(newClientContract.clientSPs(client).length, 2);
+        assertTrue(_contains(1234, newClientContract.clientSPs(client)));
+        assertTrue(_contains(5678, newClientContract.clientSPs(client)));
+    }
+
+    function testSetNewImplementation() public {
+        address oldImpl = address(new ClientV1());
+        UpgradeableBeacon beaconToUpdate = new UpgradeableBeacon(oldImpl, address(this));
+        new BeaconProxy(address(beaconToUpdate), abi.encodeWithSelector(ClientV1.initialize.selector, manager));
+        address newImpl = address(new Client());
+        beaconToUpdate.upgradeTo(newImpl);
+        assertEq(beaconToUpdate.implementation(), newImpl);
     }
 }

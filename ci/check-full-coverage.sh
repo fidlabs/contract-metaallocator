@@ -4,7 +4,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"/..
 
-forge clean && forge build && forge coverage --no-match-coverage "(script|test|AllocatorV1)" --report lcov
+forge clean && forge build && forge coverage --no-match-coverage "(script|test|AllocatorV1|ClientV1)" --report lcov
 
 summary=$(lcov --summary lcov.info --rc branch_coverage=1)
 
