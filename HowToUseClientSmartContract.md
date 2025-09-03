@@ -160,5 +160,19 @@ To check the address of the contract assigned to you, first check the associated
     Direct data import scheduled for execution
     ```
 
+## Troubleshooting
+If the client contract is reverting this is usually caused by one of the following things:
+- client doesn't have enough DC allowance on the contract
+- contract doesn't have enough DC
+- client tries to use SP that's not whitelisted
+- allocation to this SP would exceed "fair DC distribution" limits (a.k.a. if Client got 1 PiB of DC and there are 5 whitelisted SPs, max 200 TiB +/- 10% can be allocated to each one of them)
+
+**How to verify what's the cause**
+1. Install https://getfoundry.sh/introduction/installation
+2. Check if contract has enough DC: `curl 'https://api.node.glif.io/' -X POST --data-raw '{"jsonrpc":"2.0","method":"Filecoin.StateVerifiedClientStatus","params":["f410fdfrfh3jhrys2w5rsjpdin3hab47gp4qy2z4fsdy",null],"id":0}'` (replace f410... with your contract address). **Result should be higher than the allocation you're trying to do.**
+3. Check if client has enough DC allowance on the contract: `cast call --rpc-url https://api.node.glif.io/rpc/v1 0xCONTRACT_ADDRESS 'allowances(address)(uint256)' 0xCLIENT_ADDRESS`. _Use https://beryx.io/address_converter to convert to 0x addresses._ **Result should be higher than the allocation you're trying to do.**
+4. Check if SP is whitelisted: `cast call --rpc-url https://api.node.glif.io/rpc/v1 0xCONTRACT_ADDRESS 'clientSPs(address)(uint256[])' 0xCLIENT_ADDRESS` . **SP ID you're using should be on this list (list doesn't include f0 prefix)**
+5. Fair distribution - **total amount of DC used by this client for given SP can't exceed total DC the client got allocated divided by the number of whitelisted SPs (+10%).**
+
 
 8. Watch the `boostd` UI to verify that the new DDO deal reaches "Complete" and "Claim Verified" state.
