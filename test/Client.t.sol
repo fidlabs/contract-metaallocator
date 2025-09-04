@@ -1142,7 +1142,7 @@ contract ClientTest is Test {
         assertEq(newClientContract.allowances(client), 4096);
     }
 
-     function testClientSPsAfterUpdate() public {
+    function testClientSPsAfterUpdate() public {
         address oldImpl = address(new ClientV1());
         UpgradeableBeacon beaconToUpdate = new UpgradeableBeacon(oldImpl, address(this));
         BeaconProxy proxyToUpdate =
